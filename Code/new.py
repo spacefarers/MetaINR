@@ -88,11 +88,6 @@ def evaluate(timestep, meta_batch, split_total_coords):
 
 
 def run():
-    dataset = MetaDataset(config.target_dataset, config.target_var, config.test_timesteps,
-                            dims=config.get_dims_of_dataset(config.target_dataset),
-                            s=4)
-    dataloader = list(DataLoader(dataset, batch_size=1, shuffle=False, num_workers=0))
-    split_total_coords = torch.split(dataset.total_coords, 32000, dim=0)
 
     add_backbone()
     # backbone = torch.load("backbone.pth")
@@ -103,6 +98,11 @@ def run():
     train_head(3)
     # torch.save(heads[0], "head.pth")
     # torch.save(backbones[0], "backbone.pth")
+    dataset = MetaDataset(config.target_dataset, config.target_var, config.test_timesteps,
+                            dims=config.get_dims_of_dataset(config.target_dataset),
+                            s=4)
+    dataloader = list(DataLoader(dataset, batch_size=1, shuffle=False, num_workers=0))
+    split_total_coords = torch.split(dataset.total_coords, 32000, dim=0)
     print(evaluate(4, dataloader[4],split_total_coords))
     # for step in range(len(dataloader)-bundle_size):
     #     meta_batch = dataloader[step]
