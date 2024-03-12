@@ -49,7 +49,7 @@ def train_head(time_step):
                     support_preds = learner(sample['context']['x'][i])
                     support_loss = loss_func(support_preds, sample['context']['y'][i].unsqueeze(-1))
                     learner.adapt(support_loss)
-                    # backbone_learner.adapt(support_loss)
+                    backbone_learner.adapt(support_loss)
                 adapt_loss = loss_func(learner(sample['query']['x'][i]), sample['query']['y'][i].unsqueeze(-1))
                 step_loss += adapt_loss
             step_loss = step_loss/effective_batch_size
