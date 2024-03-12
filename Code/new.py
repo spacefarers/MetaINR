@@ -12,7 +12,7 @@ bundle_size = 3
 backbone_group_size = 5
 eval_steps = 64
 outer_steps = 250
-inner_steps = 16
+inner_steps = 32
 
 heads = [l2l.algorithms.MAML(Head().to(config.device), lr=1e-3, first_order=False,allow_unused=True) for _ in range(len(config.test_timesteps)-bundle_size+1)]
 backbones = []
