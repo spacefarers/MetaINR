@@ -19,7 +19,7 @@ backbones = []
 replay_buffer = []
 
 def add_backbone():
-    backbones.append(l2l.algorithms.MAML(Backbone().to(config.device), lr=1e-3, first_order=False, allow_unused=True))
+    backbones.append(l2l.algorithms.MAML(Backbone().to(config.device), lr=1e-4, first_order=False, allow_unused=True))
 
 
 loss_func = torch.nn.MSELoss()
@@ -31,7 +31,7 @@ def train_head(time_step):
     dataloader = list(dataloader)
     head = heads[time_step-bundle_size]
     backbone = head.backbone
-    meta_optimizer = torch.optim.Adam(list(head.net.parameters())+list(backbone.net.parameters()), lr=1e-4)
+    meta_optimizer = torch.optim.Adam(list(head.net.parameters())+list(backbone.net.parameters()), lr=5e-5)
     pbar = tqdm(total=outer_steps)
     for _ in range(outer_steps):
         loss = 0.0
