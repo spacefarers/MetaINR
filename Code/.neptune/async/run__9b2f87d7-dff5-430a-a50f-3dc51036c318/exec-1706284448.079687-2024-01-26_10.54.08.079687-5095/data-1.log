@@ -1,0 +1,12 @@
+{"obj": {"type": "AssignString", "path": ["sys", "name"], "value": "100-PowerPC"}, "version": 1, "at": 1706284448.2667198}
+{"obj": {"type": "AssignString", "path": ["sys", "description"], "value": ""}, "version": 2, "at": 1706284448.2676623}
+{"obj": {"type": "AssignString", "path": ["monitoring", "070aebf3", "hostname"], "value": "PowerPC"}, "version": 3, "at": 1706284448.2683027}
+{"obj": {"type": "AssignString", "path": ["sys", "hostname"], "value": "PowerPC"}, "version": 4, "at": 1706284448.2688034}
+{"obj": {"type": "AssignString", "path": ["monitoring", "070aebf3", "pid"], "value": "5095"}, "version": 5, "at": 1706284448.2692897}
+{"obj": {"type": "AssignString", "path": ["monitoring", "070aebf3", "tid"], "value": "139871803294784"}, "version": 6, "at": 1706284448.269771}
+{"obj": {"type": "AddStrings", "path": ["sys", "tags"], "values": ["PowerPC", "vorts"]}, "version": 7, "at": 1706284448.2703786}
+{"obj": {"type": "AssignBool", "path": ["sys", "failed"], "value": false}, "version": 8, "at": 1706284448.2708437}
+{"obj": {"type": "ClearStringLog", "path": ["monitoring", "070aebf3", "stdout"]}, "version": 9, "at": 1706284448.2713184}
+{"obj": {"type": "ClearStringLog", "path": ["monitoring", "070aebf3", "stderr"]}, "version": 10, "at": 1706284448.2717588}
+{"obj": {"type": "AssignString", "path": ["source_code", "entrypoint"], "value": "main.py"}, "version": 11, "at": 1706284448.2750316}
+{"obj": {"type": "UploadFileSet", "path": ["source_code", "files"], "file_globs": ["/mnt/d/code/MetaINR/Code/main.py"], "reset": "False"}, "version": 12, "at": 1706284448.275524}
