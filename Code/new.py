@@ -75,7 +75,7 @@ def evaluate(timestep, meta_batch, split_total_coords):
     sample = dict_to_gpu(meta_batch)
     optimizer = torch.optim.Adam(learner.parameters(), lr=1e-4)
     for i in range(eval_steps):
-        # optimizer.zero_grad()
+        optimizer.zero_grad()
         preds = learner(sample['all']['x'])
         loss = loss_func(preds, sample['all']['y'].unsqueeze(-1))
         # learner.adapt(loss)
@@ -114,40 +114,40 @@ def run():
     dataloader = list(DataLoader(dataset, batch_size=1, shuffle=False, num_workers=0))
     split_total_coords = torch.split(dataset.total_coords, 32000, dim=0)
     # evaluate all timesteps
-    # PSNR_list = []
-    # for step, meta_batch in tqdm(enumerate(dataloader), desc="Inferring", leave=False):
-    #     PSNR = evaluate(step, meta_batch, split_total_coords)
-    #     PSNR_list.append(PSNR)
-    #     print("PSNR: ", PSNR)
+    PSNR_list = []
+    for step, meta_batch in tqdm(enumerate(dataloader), desc="Inferring", leave=False):
+        PSNR = evaluate(step, meta_batch, split_total_coords)
+        PSNR_list.append(PSNR)
+        print("PSNR: ", PSNR)
 
 
     # evaluation
-    pbar = tqdm(total=len(dataset))
-    PSNR_list = []
-    for steps,meta_batch in enumerate(dataloader):
-        sample = dict_to_gpu(meta_batch)
-        learner = head.clone()
-        for i in range(eval_steps):
-            preds = learner(sample['all']['x'])
-            loss = loss_func(preds, sample['all']['y'].unsqueeze(-1))
-            learner.adapt(loss)
-        # inference
-        v_res = []
-        for inf_coords in split_total_coords:
-            inf_coords = inf_coords.to(config.device)
-            preds = learner(inf_coords).detach().squeeze().cpu().numpy()
-            v_res += list(preds)
-        v_res = np.asarray(v_res, dtype=np.float32)
-        # saveDat(v_res, f"./results/preds{steps:04d}.raw")
-        v_res = np.asarray(v_res, dtype=np.float32)
-        y_vals = meta_batch['total']['y'].squeeze().numpy()
-        GT_range = y_vals.max()-y_vals.min()
-        MSE = np.mean((v_res-y_vals)**2)
-        PSNR = 20*np.log10(GT_range)-10*np.log10(MSE)
-        config.log({"PSNR": PSNR})
-        PSNR_list.append(PSNR)
-        pbar.update(1)
-        pbar.set_description(f"volume time step: {steps}")
+    # pbar = tqdm(total=len(dataset))
+    # PSNR_list = []
+    # for steps,meta_batch in enumerate(dataloader):
+    #     sample = dict_to_gpu(meta_batch)
+    #     learner = head.clone()
+    #     for i in range(eval_steps):
+    #         preds = learner(sample['all']['x'])
+    #         loss = loss_func(preds, sample['all']['y'].unsqueeze(-1))
+    #         learner.adapt(loss)
+    #     # inference
+    #     v_res = []
+    #     for inf_coords in split_total_coords:
+    #         inf_coords = inf_coords.to(config.device)
+    #         preds = learner(inf_coords).detach().squeeze().cpu().numpy()
+    #         v_res += list(preds)
+    #     v_res = np.asarray(v_res, dtype=np.float32)
+    #     # saveDat(v_res, f"./results/preds{steps:04d}.raw")
+    #     v_res = np.asarray(v_res, dtype=np.float32)
+    #     y_vals = meta_batch['total']['y'].squeeze().numpy()
+    #     GT_range = y_vals.max()-y_vals.min()
+    #     MSE = np.mean((v_res-y_vals)**2)
+    #     PSNR = 20*np.log10(GT_range)-10*np.log10(MSE)
+    #     config.log({"PSNR": PSNR})
+    #     PSNR_list.append(PSNR)
+    #     pbar.update(1)
+    #     pbar.set_description(f"volume time step: {steps}")
 
     print("PSNR: ", np.mean(PSNR_list))
     print("PSNR list: ", PSNR_list)
