@@ -104,8 +104,8 @@ def run():
     # backbones.append(backbone)
     # heads[0] = head
     # heads[0].module.backbone = backbones[-1]
-    # train_head(80)
-    # torch.save(head, "head.pth")
+    train_head(80)
+    torch.save(head, "head2.pth")
     # torch.save(backbones, "backbone.pth")
     dataset = MetaDataset(config.target_dataset, config.target_var, config.test_timesteps,
                             dims=config.get_dims_of_dataset(config.target_dataset),

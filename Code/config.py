@@ -8,10 +8,10 @@ import json
 
 machine = platform.node()
 
-# target_dataset = "half-cylinder"
-# target_var = "640"
-target_dataset = "vorts"
-target_var = "default"
+target_dataset = "half-cylinder"
+target_var = "640"
+# target_dataset = "vorts"
+# target_var = "default"
 train_timesteps = range(1, 81, 1)
 test_timesteps = range(1, 81, 1)
 
