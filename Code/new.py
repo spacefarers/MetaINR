@@ -67,21 +67,20 @@ def train_head(time_step):
         config.log({"loss": loss/len(dataloader)})
 def evaluate(timestep, meta_batch, split_total_coords):
     global head
-    learner = deepcopy(head)
-    # head = head.clone()
+    # learner = deepcopy(head)
+    learner = head.clone()
 
     # backbone = heads[timestep-bundle_size-1].module.backbone
     # head.module.backbone = backbone
     sample = dict_to_gpu(meta_batch)
-    optimizer = torch.optim.Adam(learner.parameters(), lr=1e-4)
+    # optimizer = torch.optim.Adam(learner.parameters(), lr=1e-4)
     for i in range(eval_steps):
-        optimizer.zero_grad()
+        # optimizer.zero_grad()
         preds = learner(sample['all']['x'])
         loss = loss_func(preds, sample['all']['y'].unsqueeze(-1))
-        # learner.adapt(loss)
-        # backbone.adapt(loss)
-        loss.backward()
-        optimizer.step()
+        learner.adapt(loss)
+        # loss.backward()
+        # optimizer.step()
     v_res = []
     for inf_coords in split_total_coords:
         inf_coords = inf_coords.to(config.device)
