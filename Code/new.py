@@ -12,7 +12,7 @@ from copy import deepcopy
 
 bundle_size = 80
 backbone_group_size = 5
-eval_steps = 128
+eval_steps = 64
 outer_steps = 50
 inner_steps = 16
 
