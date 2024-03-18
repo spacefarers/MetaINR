@@ -17,7 +17,7 @@ outer_steps = 50
 inner_steps = 16
 
 net = SIREN(in_features=3, out_features=1, init_features=64, num_res=3)
-head = l2l.algorithms.MAML(net, lr=1e-3, first_order=False).to(config.device)
+head = l2l.algorithms.MAML(net, lr=1e-3, first_order=True).to(config.device)
 backbones = []
 replay_buffer = []
 
