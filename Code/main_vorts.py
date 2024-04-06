@@ -44,14 +44,13 @@ def train_new_head(meta_model:model.MetaModel, time_steps):
     if len(meta_model.heads) > 0:
         head.load_state_dict(meta_model.heads[-1].state_dict())
     head_model = l2l.algorithms.MAML(head, lr=1e-3, first_order=True, allow_unused=True).to(config.device)
-    backbone_model = l2l.algorithms.MAML(meta_model.backbone, lr=1e-3, first_order=True, allow_unused=True).to(config.device)
+    backbone_model = l2l.algorithms.MAML(meta_model.backbone, lr=1e-5, first_order=True, allow_unused=True).to(config.device)
     replay_batch = None
-    meta_optimizer = torch.optim.Adam([
-        {'params': head_model.parameters(), 'lr': meta_lr},
-        {'params': backbone_model.parameters(), 'lr': meta_lr}
-    ])
-    replay_optimizer = torch.optim.Adam(backbone_model.parameters(), lr=1e-5)
     for outer_step in range(outer_steps):
+        meta_optimizer = torch.optim.Adam([
+            {'params': head_model.parameters(), 'lr': 1e-4},
+            {'params': backbone_model.parameters(), 'lr': 5e-5}
+        ])
         total_loss = 0.0
         mean_PSNR = 0.0
         loss = 0.0
@@ -81,10 +80,12 @@ def train_new_head(meta_model:model.MetaModel, time_steps):
             meta_optimizer.step()
             loss += step_loss.item()
         replay_set = subset_clip(meta_model.replay_buffer)
+        if len(replay_set) > 0:
+            meta_optimizer = torch.optim.Adam(backbone_model.parameters(), lr=1e-5)
         for meta_batch in replay_set:
             effective_batch_size = meta_batch['context']['x'].shape[0]
             sample = dict_to_gpu(meta_batch)
-            replay_optimizer.zero_grad()
+            meta_optimizer.zero_grad()
             step_loss = 0.0
             for i in range(effective_batch_size):
                 learner = head_model.clone()
@@ -102,12 +103,12 @@ def train_new_head(meta_model:model.MetaModel, time_steps):
                 step_loss += adapt_loss
             step_loss = step_loss/effective_batch_size
             step_loss.backward()
-            replay_optimizer.step()
+            meta_optimizer.step()
             loss += step_loss.item()
         pbar.set_description(f"Loss: {loss/(len(dataloader)+len(replay_set))}")
         pbar.update(1)
     meta_model.heads.append(head)
-    # meta_model.replay_buffer.append(replay_batch)
+    meta_model.replay_buffer.append(replay_batch)
 
 
     # torch.save(backbones[0], f"/mnt/d/tmp/metaINR/backbone.pth")
@@ -170,14 +171,14 @@ def run():
                             s=4)
     dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=0)
     split_total_coords = torch.split(dataset.total_coords, 32000, dim=0)
-
+    #
     start_time = time.time()
 
     PSNR_list = []
     for step, meta_batch in enumerate(tqdm(dataloader, desc="Online", leave=False)):
         PSNR, loss = evaluate(meta_model,-1, split_total_coords, meta_batch, step)
         config.log({f"{step} PSNR": PSNR, "loss": loss})
-        if PSNR < 40:
+        if PSNR < 37:
             print(colored(f"PSNR: {PSNR} Loss {loss}, Adding new Head #{len(meta_model.heads)}", "red"))
             train_new_head(meta_model, range(max(1,step-2), min(config.test_timesteps[-1],step+2)))
             PSNR, loss = evaluate(meta_model,-1, split_total_coords, meta_batch, step)
@@ -186,18 +187,18 @@ def run():
         PSNR_list.append(PSNR)
 
     end_time = time.time()
-    print(colored(f"Online Time: {end_time-start_time}", "red"))
-    print(colored(f"Average PSNR: {np.mean(PSNR_list)}", "red"))
+    print(f"Online Time: {end_time-start_time}")
+    print(f"Average PSNR: {np.mean(PSNR_list)}")
     print("PSNR_list: ", PSNR_list)
-    # save_models(meta_model, 2)
+    save_models(meta_model, 2)
 
     # load_models(meta_model, 2)
 
     # Final Eval
     PSNR_list = []
     for step, meta_batch in enumerate(tqdm(dataloader, desc="Inferring", leave=False)):
-        # PSNR, loss = evaluate(meta_model,meta_model.frame_head_correspondence[step], split_total_coords, meta_batch, step)
-        PSNR, loss = evaluate(meta_model,-1, split_total_coords, meta_batch, step)
+        PSNR, loss = evaluate(meta_model,meta_model.frame_head_correspondence[step], split_total_coords, meta_batch, step)
+        # PSNR, loss = evaluate(meta_model,-1, split_total_coords, meta_batch, step)
         # config.log({"PSNR": PSNR, "loss": loss})
         PSNR_list.append(PSNR)
     print(f"Final Average PSNR: {np.mean(PSNR_list)}")

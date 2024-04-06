@@ -10,14 +10,14 @@ import numpy as np
 from tqdm import tqdm
 from copy import deepcopy
 
-bundle_size = 80
+bundle_size = 5
 backbone_group_size = 5
-eval_steps = 128
-outer_steps = 50
+eval_steps = 100
+outer_steps = 500
 inner_steps = 16
 
 net = SIREN(in_features=3, out_features=1, init_features=64, num_res=3)
-head = l2l.algorithms.MAML(net, lr=1e-3, first_order=True).to(config.device)
+head = l2l.algorithms.MAML(net, lr=1e-4, first_order=True).to(config.device)
 backbones = []
 replay_buffer = []
 
@@ -31,8 +31,7 @@ def train_head(time_step):
     dataset = MetaDataset(config.target_dataset, config.target_var, range(time_step-bundle_size+1, time_step+1),
                             dims=config.get_dims_of_dataset(config.target_dataset),
                             s=4)
-    dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=0)
-    dataloader = list(dataloader)
+    dataloader = DataLoader(dataset, batch_size=1, shuffle=True, num_workers=0)
     # backbone = head.backbone
     meta_optimizer = torch.optim.Adam(head.parameters(), lr=5e-5)
     pbar = tqdm(total=outer_steps)
@@ -40,8 +39,7 @@ def train_head(time_step):
         loss = 0.0
         time_steps = list(range(time_step-bundle_size, time_step))
         np.random.shuffle(time_steps)
-        for ind, step in enumerate(time_steps):
-            meta_batch = dataloader[step]
+        for ind, meta_batch in enumerate(dataloader):
             effective_batch_size = meta_batch['context']['x'].shape[0]
             sample = dict_to_gpu(meta_batch)
             meta_optimizer.zero_grad()
@@ -100,12 +98,12 @@ def run():
     global head
     # add_backbone()
     # backbones = torch.load("backbone.pth")
-    # head = torch.load("head.pth")
+    head = torch.load("base5.pth")
     # backbones.append(backbone)
     # heads[0] = head
     # heads[0].module.backbone = backbones[-1]
-    train_head(80)
-    torch.save(head, "head2.pth")
+    # train_head(5)
+    # torch.save(head, "base5.pth")
     # torch.save(backbones, "backbone.pth")
     dataset = MetaDataset(config.target_dataset, config.target_var, config.test_timesteps,
                             dims=config.get_dims_of_dataset(config.target_dataset),

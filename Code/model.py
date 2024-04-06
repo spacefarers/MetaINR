@@ -1,5 +1,6 @@
 from torch import nn
 from CoordNet import SIREN,SineLayer,LinearLayer
+import config
 
 class Base(nn.Module):
     def __init__(self, additional_layers=0):
@@ -18,7 +19,7 @@ class Base(nn.Module):
         return coords
 
 class Backbone(nn.Module):
-    def __init__(self, base=None, layers=3):
+    def __init__(self, base=None, layers=2):
         super(Backbone, self).__init__()
         self.net = [
             SineLayer(3, 64),
@@ -45,8 +46,8 @@ class Head(nn.Module):
         # self.net.requires_grad_(False)
         self.backbone = backbone
 
-    def forward(self, coords=None, backbone_output=None):
-        return self.net(self.backbone(coords) if coords is not None else backbone_output)
+    def forward(self, coords=None):
+        return self.net(self.backbone(coords) if self.backbone is not None else coords)
 
 
 def weights_init_kaiming(m):
@@ -58,3 +59,13 @@ def weights_init_kaiming(m):
     elif classname.find("BatchNorm") != -1:
         nn.init.normal_(m.weight.data, 1.0, 0.02)
         nn.init.constant_(m.bias.data, 0.0)
+
+class MetaModel:
+    def __init__(self):
+        self.backbone = Backbone().to(config.device)
+        self.heads = []
+        self.frame_head_correspondence = [0]*len(config.test_timesteps)
+        self.replay_buffer = []
+
+    def add_head(self):
+        self.heads.append(Head())

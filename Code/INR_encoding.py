@@ -31,8 +31,8 @@ def get_volumes(paths):
 
 if __name__ == "__main__":
     lr  = 1e-4 
-    train_iterations = 500
-    BatchSize = 16
+    train_iterations = 750
+    BatchSize = 1
     
     
     loss_func = nn.MSELoss()

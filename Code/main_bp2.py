@@ -82,7 +82,7 @@ def evaluate_all_timesteps(test_dataloader, learner):
 # todo: [] find a way to measure how to determine which data can be best optmise by meta-learning
 
 if __name__ == "__main__":
-    meta_lr = 5e-5  # very sensitive
+    meta_lr = 1e-4
     fast_lr = 0.001
     outer_steps = 50
     inner_steps = 16
@@ -152,9 +152,9 @@ if __name__ == "__main__":
         for i in range(eval_steps):
             preds = learner(sample['all']['x'])
             loss = loss_func(preds, sample['all']['y'].unsqueeze(-1))
-            # learner.adapt(loss)
-            loss.backward()
-            optimizer.step()
+            learner.adapt(loss)
+            # loss.backward()
+            # optimizer.step()
         # inference
         v_res = []
         for inf_coords in split_total_coords:
