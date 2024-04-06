@@ -35,7 +35,7 @@ elif 'crc' in machine:
     root_data_dir = '/afs/crc.nd.edu/user/m/myang9/data/'
     experiments_dir = '/scratch365/myang9/experiments/'
     processed_dir = "/scratch365/myang9/processed_data/"
-    temp_dir = '~/experiments/'
+    temp_dir = '~/experiments/MetaINR/'
     # experiments_dir = '/afs/crc.nd.edu/user/m/myang9/experiments/'
     # processed_dir = "/afs/crc.nd.edu/user/m/myang9/data/processed_data"
     # batch_size = 2
