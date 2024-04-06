@@ -108,10 +108,6 @@ def init_logging():
         tags=tags,
     )
     params = {
-        "learning_rate_generator": lr[0],
-        "learning_rate_discriminator": lr[1],
-        "source_dataset": source_dataset,
-        "source_var": source_var,
         "target_dataset": target_dataset,
         "target_var": target_var,
     }
