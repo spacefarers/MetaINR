@@ -14,10 +14,6 @@ import fire
 
 loss_func = nn.MSELoss()
 
-meta_lr = 1e-4
-outer_steps = 150
-inner_steps = 16
-eval_steps = 150
 loss_threshold = 0.001
 PSNR_threshold = 40
 
@@ -37,7 +33,7 @@ def train_new_head(meta_model:model.MetaModel, time_steps, replay=False):
                             dims=config.get_dims_of_dataset(config.target_dataset),
                             s=4)
     dataloader = DataLoader(dataset, batch_size=1, shuffle=True, num_workers=0)
-    pbar = tqdm(total=outer_steps)
+    pbar = tqdm(total=meta_model.outer_steps)
     total_coords = dataset.total_coords
     split_total_coords = torch.split(total_coords, 32000, dim=0)
 
@@ -48,11 +44,11 @@ def train_new_head(meta_model:model.MetaModel, time_steps, replay=False):
     backbone_model = l2l.algorithms.MAML(meta_model.backbone, lr=1e-3, first_order=True, allow_unused=True).to(config.device)
     replay_batch = None
     meta_optimizer = torch.optim.Adam([
-        {'params': head_model.parameters(), 'lr': meta_lr},
-        {'params': backbone_model.parameters(), 'lr': meta_lr}
+        {'params': head_model.parameters(), 'lr': meta_model.meta_lr},
+        {'params': backbone_model.parameters(), 'lr': meta_model.meta_lr}
     ])
     replay_optimizer = torch.optim.Adam(backbone_model.parameters(), lr=1e-5)
-    for outer_step in range(outer_steps):
+    for outer_step in range(meta_model.outer_steps):
         total_loss = 0.0
         mean_PSNR = 0.0
         loss = 0.0
@@ -67,7 +63,7 @@ def train_new_head(meta_model:model.MetaModel, time_steps, replay=False):
                 learner = head_model.clone()
                 backbone_learner = backbone_model.clone()
                 # optimizer = torch.optim.Adam(learner.parameters(), lr=1e-4)
-                for _ in range(inner_steps):
+                for _ in range(meta_model.inner_steps):
                     # optimizer.zero_grad()
                     support_preds = learner(backbone_learner(sample['context']['x'][i]))
                     support_loss = loss_func(support_preds, sample['context']['y'][i].unsqueeze(-1))
@@ -91,7 +87,7 @@ def train_new_head(meta_model:model.MetaModel, time_steps, replay=False):
                 learner = head_model.clone()
                 backbone_learner = backbone_model.clone()
                 # optimizer = torch.optim.Adam(learner.parameters(), lr=1e-4)
-                for _ in range(inner_steps):
+                for _ in range(meta_model.inner_steps):
                     # optimizer.zero_grad()
                     support_preds = learner(backbone_learner(sample['context']['x'][i]))
                     support_loss = loss_func(support_preds, sample['context']['y'][i].unsqueeze(-1))
@@ -124,7 +120,7 @@ def evaluate(meta_model:model.MetaModel, head_ind, split_total_coords, meta_batc
     sample = dict_to_gpu(meta_batch)
     optimizer = torch.optim.Adam(head_learner.parameters(), lr=5e-5)
     loss = 0.0
-    for i in range(eval_steps):
+    for i in range(meta_model.eval_steps):
         optimizer.zero_grad()
         preds = head_learner(sample['all']['x'])
         loss = loss_func(preds, sample['all']['y'].unsqueeze(-1))
@@ -206,9 +202,8 @@ def run(pretrain=False, serial=1, run_id=1,replay=False):
     print("Head Frame Correspondence: ", meta_model.frame_head_correspondence)
 
 def pretrain_model(meta_model:model.MetaModel, serial=1):
-    global meta_lr, outer_steps
-    meta_lr = 5e-5
-    outer_steps = 500
+    meta_model.meta_lr = 5e-5
+    meta_model.outer_steps = 500
     train_new_head(meta_model, range(1, 6))
     save_models(meta_model, serial)
 

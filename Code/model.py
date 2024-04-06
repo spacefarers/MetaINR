@@ -66,6 +66,10 @@ class MetaModel:
         self.heads = []
         self.frame_head_correspondence = [0]*len(config.test_timesteps)
         self.replay_buffer = []
+        self.meta_lr = 1e-4
+        self.inner_steps = 16
+        self.outer_steps = 100
+        self.eval_steps = 150
 
     def add_head(self):
         self.heads.append(Head())
