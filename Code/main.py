@@ -10,11 +10,12 @@ from termcolor import colored
 import learn2learn as l2l
 from copy import deepcopy
 import random
+import fire
 
 loss_func = nn.MSELoss()
 
-meta_lr = 5e-5
-outer_steps = 500
+meta_lr = 1e-5
+outer_steps = 50
 inner_steps = 16
 eval_steps = 250
 loss_threshold = 0.001
@@ -155,13 +156,11 @@ def load_models(meta_model:model.MetaModel, serial=1):
         with open(f"{config.temp_dir}/metaINR/head_frame_{serial}.json", "r") as f:
             meta_model.frame_head_correspondence = json.load(f)
 
-def run():
+def run(pretrain=False, serial=1):
     meta_model = model.MetaModel()
-
-    train_new_head(meta_model, range(1, 6))
-    save_models(meta_model, 1)
-    return
-    #
+    if pretrain:
+        pretrain_model(meta_model, serial)
+        return
     load_models(meta_model, 1)
     # heads = [model.Head(backbone).to(config.device)]
     #
@@ -204,5 +203,12 @@ def run():
     print("Final PSNR_list: ", PSNR_list)
     print("Head Frame Correspondence: ", meta_model.frame_head_correspondence)
 
+def pretrain_model(meta_model:model.MetaModel, serial=1):
+    global meta_lr, outer_steps
+    meta_lr = 5e-5
+    outer_steps = 500
+    train_new_head(meta_model, range(1, 6))
+    save_models(meta_model, serial)
+
 if __name__ == "__main__":
-    run()
+    fire.Fire(run)

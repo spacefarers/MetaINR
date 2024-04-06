@@ -35,7 +35,7 @@ elif 'crc' in machine:
     root_data_dir = '/afs/crc.nd.edu/user/m/myang9/data/'
     experiments_dir = '/scratch365/myang9/experiments/'
     processed_dir = "/scratch365/myang9/processed_data/"
-    temp_dir = '/tmp/'
+    temp_dir = '~/experiments/MetaINR/'
     # experiments_dir = '/afs/crc.nd.edu/user/m/myang9/experiments/'
     # processed_dir = "/afs/crc.nd.edu/user/m/myang9/data/processed_data"
     # batch_size = 2
@@ -102,7 +102,7 @@ def init_logging():
     assert run_id is not None, "run_id is not set"
     import keys
     log_obj = neptune.init_run(
-        project="VRNET/VRNET",
+        project="VRNET/MetaINR",
         api_token=keys.NEPTUNE_API_TOKEN,
         name=f'{run_id:03d}-{machine}',
         tags=tags,
