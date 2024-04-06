@@ -13,12 +13,12 @@ import random
 
 loss_func = nn.MSELoss()
 
-meta_lr = 1e-4
-outer_steps = 50
+meta_lr = 5e-5
+outer_steps = 500
 inner_steps = 16
 eval_steps = 250
 loss_threshold = 0.001
-PSNR_threshold = 37
+PSNR_threshold = 40
 
 def dict_to_gpu(ob):
     if isinstance(ob, Mapping):
@@ -158,9 +158,9 @@ def load_models(meta_model:model.MetaModel, serial=1):
 def run():
     meta_model = model.MetaModel()
 
-    # train_new_head(meta_model, range(1, 6))
-    # save_models(meta_model, 1)
-    # return
+    train_new_head(meta_model, range(1, 6))
+    save_models(meta_model, 1)
+    return
     #
     load_models(meta_model, 1)
     # heads = [model.Head(backbone).to(config.device)]
@@ -177,7 +177,7 @@ def run():
     for step, meta_batch in enumerate(tqdm(dataloader, desc="Online", leave=False)):
         PSNR, loss = evaluate(meta_model,-1, split_total_coords, meta_batch, step)
         print(f"Preliminary PSNR: {PSNR} Loss: {loss}")
-        if PSNR < 40:
+        if PSNR < PSNR_threshold:
             print(colored(f"PSNR: {PSNR} Loss {loss}, Adding new Head #{len(meta_model.heads)}", "red"))
             train_new_head(meta_model, range(max(1,step-2), min(config.test_timesteps[-1],step+2)))
             PSNR, loss = evaluate(meta_model,-1, split_total_coords, meta_batch, step)
