@@ -28,12 +28,14 @@ if 'PowerPC' in machine:
     experiments_dir = '/mnt/d/experiments/'
     root_data_dir = '/mnt/d/data/'
     processed_dir = '/mnt/d/data/processed_data/'
+    temp_dir = '/mnt/d/tmp/'
     # enable_logging = True
 elif 'crc' in machine:
     machine = 'CRC'
     root_data_dir = '/afs/crc.nd.edu/user/m/myang9/data/'
     experiments_dir = '/scratch365/myang9/experiments/'
     processed_dir = "/scratch365/myang9/processed_data/"
+    temp_dir = '/tmp/'
     # experiments_dir = '/afs/crc.nd.edu/user/m/myang9/experiments/'
     # processed_dir = "/afs/crc.nd.edu/user/m/myang9/data/processed_data"
     # batch_size = 2

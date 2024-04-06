@@ -110,9 +110,9 @@ def train_new_head(meta_model:model.MetaModel, time_steps):
     # meta_model.replay_buffer.append(replay_batch)
 
 
-    # torch.save(backbones[0], f"/mnt/d/tmp/metaINR/backbone.pth")
-    # torch.save(base, f"/mnt/d/tmp/metaINR/base.pth")
-    # torch.save(heads[0], f"/mnt/d/tmp/metaINR/head.pth")
+    # torch.save(backbones[0], f"{config.temp_dir}/metaINR/backbone.pth")
+    # torch.save(base, f"{config.temp_dir}/metaINR/base.pth")
+    # torch.save(heads[0], f"{config.temp_dir}/metaINR/head.pth")
 
 def evaluate(meta_model:model.MetaModel, head_ind, split_total_coords, meta_batch, step):
     head_learner = deepcopy(meta_model.heads[head_ind])
@@ -139,20 +139,20 @@ def evaluate(meta_model:model.MetaModel, head_ind, split_total_coords, meta_batc
     GT_range = y_vals.max()-y_vals.min()
     MSE = np.mean((v_res-y_vals)**2)
     PSNR = 20*np.log10(GT_range)-10*np.log10(MSE)
-    # saveDat(v_res, f"/mnt/d/tmp/preds{step:04d}.raw")
+    # saveDat(v_res, f"{config.temp_dir}/preds{step:04d}.raw")
     return PSNR, loss
 
 def save_models(meta_model:model.MetaModel, serial=1):
-    torch.save(meta_model.backbone, f"/mnt/d/tmp/metaINR/backbone_{serial}.pth")
-    torch.save(meta_model.heads, f"/mnt/d/tmp/metaINR/head_{serial}.pth")
-    with open(f"/mnt/d/tmp/metaINR/head_frame_{serial}.json", "w") as f:
+    torch.save(meta_model.backbone, f"{config.temp_dir}/metaINR/backbone_{serial}.pth")
+    torch.save(meta_model.heads, f"{config.temp_dir}/metaINR/head_{serial}.pth")
+    with open(f"{config.temp_dir}/metaINR/head_frame_{serial}.json", "w") as f:
         json.dump(meta_model.frame_head_correspondence, f)
 
 def load_models(meta_model:model.MetaModel, serial=1):
-    meta_model.backbone = torch.load(f"/mnt/d/tmp/metaINR/backbone_{serial}.pth")
-    meta_model.heads = torch.load(f"/mnt/d/tmp/metaINR/head_{serial}.pth")
-    if os.path.exists(f"/mnt/d/tmp/metaINR/head_frame_{serial}.json"):
-        with open(f"/mnt/d/tmp/metaINR/head_frame_{serial}.json", "r") as f:
+    meta_model.backbone = torch.load(f"{config.temp_dir}/metaINR/backbone_{serial}.pth")
+    meta_model.heads = torch.load(f"{config.temp_dir}/metaINR/head_{serial}.pth")
+    if os.path.exists(f"{config.temp_dir}/metaINR/head_frame_{serial}.json"):
+        with open(f"{config.temp_dir}/metaINR/head_frame_{serial}.json", "r") as f:
             meta_model.frame_head_correspondence = json.load(f)
 
 def run():
