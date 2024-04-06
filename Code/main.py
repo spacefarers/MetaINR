@@ -15,7 +15,7 @@ import fire
 loss_func = nn.MSELoss()
 
 meta_lr = 1e-4
-outer_steps = 50
+outer_steps = 150
 inner_steps = 16
 eval_steps = 250
 loss_threshold = 0.001
