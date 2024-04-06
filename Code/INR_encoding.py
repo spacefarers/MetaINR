@@ -99,7 +99,7 @@ if __name__ == "__main__":
         pbar.set_description(f"volume time step: {steps}")
     print("PSNR: ", np.mean(PSNR_list))
     print("PSNR list: ", PSNR_list)
-    torch.save(models, "/mnt/d/tmp/models.pth")
+    torch.save(models, f"{config.temp_dir}/models.pth")
 
 print("Total encoding time: ", total_encoding_time)
 # 73.5MB Vorts 1-80 36.08
