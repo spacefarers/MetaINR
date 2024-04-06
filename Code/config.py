@@ -37,7 +37,7 @@ elif 'crc' in machine:
     # experiments_dir = '/afs/crc.nd.edu/user/m/myang9/experiments/'
     # processed_dir = "/afs/crc.nd.edu/user/m/myang9/data/processed_data"
     # batch_size = 2
-    # enable_logging = True
+    enable_logging = True
 elif 'MacBook' in machine or 'mbp' in machine:
     root_data_dir = '/Users/spacefarers/data/'
     experiments_dir = '/Users/spacefarers/experiments/'

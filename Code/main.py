@@ -176,12 +176,12 @@ def run():
     PSNR_list = []
     for step, meta_batch in enumerate(tqdm(dataloader, desc="Online", leave=False)):
         PSNR, loss = evaluate(meta_model,-1, split_total_coords, meta_batch, step)
-        config.log({f"{step} PSNR": PSNR, "loss": loss})
+        print(f"Preliminary PSNR: {PSNR} Loss: {loss}")
         if PSNR < 40:
             print(colored(f"PSNR: {PSNR} Loss {loss}, Adding new Head #{len(meta_model.heads)}", "red"))
             train_new_head(meta_model, range(max(1,step-2), min(config.test_timesteps[-1],step+2)))
             PSNR, loss = evaluate(meta_model,-1, split_total_coords, meta_batch, step)
-            config.log({f"New {step} PSNR": PSNR, "New loss": loss})
+        config.log({f"PSNR": PSNR, "loss": loss})
         meta_model.frame_head_correspondence[step] = len(meta_model.heads)-1
         PSNR_list.append(PSNR)
 
