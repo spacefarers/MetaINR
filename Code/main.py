@@ -156,7 +156,8 @@ def load_models(meta_model:model.MetaModel, serial=1):
         with open(f"{config.temp_dir}/head_frame_{serial}.json", "r") as f:
             meta_model.frame_head_correspondence = json.load(f)
 
-def run(pretrain=False, serial=1):
+def run(pretrain=False, serial=1, run_id=1):
+    config.run_id = run_id
     meta_model = model.MetaModel()
     if pretrain:
         pretrain_model(meta_model, serial)
