@@ -32,7 +32,7 @@ def subset_clip(l, max_size=3):
         return random.sample(l, max_size)
     return l
 
-def train_new_head(meta_model:model.MetaModel, time_steps):
+def train_new_head(meta_model:model.MetaModel, time_steps, replay=False):
     dataset = MetaDataset(config.target_dataset, config.target_var, time_steps,
                             dims=config.get_dims_of_dataset(config.target_dataset),
                             s=4)
@@ -108,7 +108,8 @@ def train_new_head(meta_model:model.MetaModel, time_steps):
         pbar.set_description(f"Loss: {loss/(len(dataloader)+len(replay_set))}")
         pbar.update(1)
     meta_model.heads.append(head)
-    # meta_model.replay_buffer.append(replay_batch)
+    if replay:
+        meta_model.replay_buffer.append(replay_batch)
 
 
     # torch.save(backbones[0], f"{config.temp_dir}/backbone.pth")
@@ -156,7 +157,7 @@ def load_models(meta_model:model.MetaModel, serial=1):
         with open(f"{config.temp_dir}/head_frame_{serial}.json", "r") as f:
             meta_model.frame_head_correspondence = json.load(f)
 
-def run(pretrain=False, serial=1, run_id=1):
+def run(pretrain=False, serial=1, run_id=1,replay=False):
     config.run_id = run_id
     meta_model = model.MetaModel()
     if pretrain:
@@ -179,7 +180,7 @@ def run(pretrain=False, serial=1, run_id=1):
         print(f"Preliminary PSNR: {PSNR} Loss: {loss}")
         if PSNR < PSNR_threshold:
             print(colored(f"PSNR: {PSNR} Loss {loss}, Adding new Head #{len(meta_model.heads)}", "red"))
-            train_new_head(meta_model, range(max(1,step-2), min(config.test_timesteps[-1],step+2)))
+            train_new_head(meta_model, range(max(1,step-2), min(config.test_timesteps[-1],step+2)), replay)
             PSNR, loss = evaluate(meta_model,-1, split_total_coords, meta_batch, step)
         config.log({f"PSNR": PSNR, "loss": loss})
         meta_model.frame_head_correspondence[step] = len(meta_model.heads)-1
