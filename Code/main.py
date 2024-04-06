@@ -15,7 +15,7 @@ import fire
 loss_func = nn.MSELoss()
 
 loss_threshold = 0.001
-PSNR_threshold = 40
+PSNR_threshold = 37
 
 def dict_to_gpu(ob):
     if isinstance(ob, Mapping):
@@ -41,13 +41,13 @@ def train_new_head(meta_model:model.MetaModel, time_steps, replay=False):
     if len(meta_model.heads) > 0:
         head.load_state_dict(meta_model.heads[-1].state_dict())
     head_model = l2l.algorithms.MAML(head, lr=1e-3, first_order=True, allow_unused=True).to(config.device)
-    backbone_model = l2l.algorithms.MAML(meta_model.backbone, lr=1e-3, first_order=True, allow_unused=True).to(config.device)
+    backbone_model = l2l.algorithms.MAML(meta_model.backbone, lr=1e-5, first_order=True, allow_unused=True).to(config.device)
     replay_batch = None
     meta_optimizer = torch.optim.Adam([
         {'params': head_model.parameters(), 'lr': meta_model.meta_lr},
         {'params': backbone_model.parameters(), 'lr': meta_model.meta_lr}
     ])
-    replay_optimizer = torch.optim.Adam(backbone_model.parameters(), lr=1e-5)
+    replay_optimizer = torch.optim.Adam(backbone_model.parameters(), lr=meta_model.meta_lr)
     for outer_step in range(meta_model.outer_steps):
         total_loss = 0.0
         mean_PSNR = 0.0
@@ -202,7 +202,7 @@ def run(pretrain=False, serial=1, run_id=1,replay=False):
     print("Head Frame Correspondence: ", meta_model.frame_head_correspondence)
 
 def pretrain_model(meta_model:model.MetaModel, serial=1):
-    meta_model.meta_lr = 5e-5
+    meta_model.meta_lr = 1e-4
     meta_model.outer_steps = 500
     train_new_head(meta_model, range(1, 6))
     save_models(meta_model, serial)
