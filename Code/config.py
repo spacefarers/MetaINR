@@ -8,12 +8,12 @@ import json
 
 machine = platform.node()
 
-target_dataset = "half-cylinder"
-target_var = "640"
-# target_dataset = "vorts"
-# target_var = "default"
-train_timesteps = range(1, 51, 1)
-test_timesteps = range(1, 51, 1)
+# target_dataset = "half-cylinder"
+# target_var = "640"
+target_dataset = "vorts"
+target_var = "default"
+train_timesteps = range(1, 91, 1)
+test_timesteps = range(1, 91, 1)
 
 # source_dataset = ["160", "320", "6400"]
 # pretrain_vars = ["RAIN", "WSMAG"]

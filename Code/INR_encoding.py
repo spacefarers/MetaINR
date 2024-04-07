@@ -32,7 +32,7 @@ def get_volumes(paths):
 if __name__ == "__main__":
     config.run_id = 1
     lr  = 1e-4 
-    train_iterations = 750
+    train_iterations = 500
     BatchSize = 1
     
     

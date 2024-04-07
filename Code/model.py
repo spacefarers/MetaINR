@@ -19,7 +19,7 @@ class Base(nn.Module):
         return coords
 
 class Backbone(nn.Module):
-    def __init__(self, base=None, layers=2):
+    def __init__(self, base=None, layers=1):
         super(Backbone, self).__init__()
         self.net = [
             SineLayer(3, 64),
@@ -36,7 +36,7 @@ class Backbone(nn.Module):
         return self.net(self.base(coords)) if self.base is not None else self.net(coords)
 
 class Head(nn.Module):
-    def __init__(self, backbone=None, layers=1):
+    def __init__(self, backbone=None, layers=2):
         super(Head, self).__init__()
         self.net = []
         for i in range(layers):
@@ -64,12 +64,23 @@ class MetaModel:
     def __init__(self):
         self.backbone = Backbone().to(config.device)
         self.heads = []
-        self.frame_head_correspondence = [0]*len(config.test_timesteps)
+        self.frame_head_correspondence = [-1]*len(config.test_timesteps)
         self.replay_buffer = []
         self.meta_lr = 1e-4
         self.inner_steps = 16
-        self.outer_steps = 100
+        self.outer_steps = 50
         self.eval_steps = 150
+        self.online_encode_time = 0
+        self.transfer_encode_time = 0
+        self.tmp_encode_time = 0
+        self.online_PSNR_seq = []
+        self.online_PSNR_par = []
+        self.transfer_PSNR = []
+        self.last_frame_PSNR = []
+
+    def load_in(self, attr):
+        self.__dict__.update(attr)
+        return self
 
     def add_head(self):
         self.heads.append(Head())
