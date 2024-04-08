@@ -1,16 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="spacefarers@powerpc.dhcp.nd.edu:22 password" remoteFilesAllowedToDisappearOnAutoupload="false" confirmBeforeUploading="false">
+  <component name="PublishConfigData" serverName="crc1" remoteFilesAllowedToDisappearOnAutoupload="false" confirmBeforeUploading="false">
     <option name="confirmBeforeUploading" value="false" />
     <serverData>
-      <paths name="spacefarers@powerpc.dhcp.nd.edu:22 password">
+      <paths name="crc1">
         <serverdata>
           <mappings>
-            <mapping deploy="/mnt/d/code/MetaINR" local="$PROJECT_DIR$" web="/" />
+            <mapping deploy="/afs/crc.nd.edu/user/m/myang9/code/MetaINR" local="$PROJECT_DIR$" web="/" />
           </mappings>
         </serverdata>
       </paths>
     </serverData>
-    <option name="myAutoUpload" value="ALWAYS" />
   </component>
 </project>

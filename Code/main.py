@@ -1,5 +1,7 @@
-import os.path
+# Use "--pretrain" flag to run the pretraining phase
+# Use "--replay" flag to enable replay
 
+import os.path
 import config
 import model
 from torch.utils.data import Dataset, DataLoader
@@ -29,7 +31,7 @@ def subset_clip(l, max_size=3):
 
 
 def pretrain_model(meta_model:model.MetaModel, serial=1):
-    meta_model.meta_lr = 2e-5
+    meta_model.meta_lr = 5e-5 # very sensitive
     meta_model.outer_steps = 500
 
 
@@ -44,8 +46,8 @@ def pretrain_model(meta_model:model.MetaModel, serial=1):
     pbar = tqdm(total=meta_model.outer_steps)
     head1 = model.Head().to(config.device)
     head2 = model.Head().to(config.device)
-    head_model1 = l2l.algorithms.MAML(head1, lr=1e-3, first_order=True, allow_unused=True).to(config.device)
-    head_model2 = l2l.algorithms.MAML(head2, lr=1e-3, first_order=True, allow_unused=True).to(config.device)
+    head_model1 = l2l.algorithms.MAML(head1, lr=1e-4, first_order=True, allow_unused=True).to(config.device)
+    head_model2 = l2l.algorithms.MAML(head2, lr=1e-4, first_order=True, allow_unused=True).to(config.device)
     backbone_model = l2l.algorithms.MAML(meta_model.backbone, lr=1e-5, first_order=True, allow_unused=True).to(config.device)
     meta_optimizer = torch.optim.Adam([
         {'params': head_model1.parameters(), 'lr': meta_model.meta_lr},
@@ -90,6 +92,7 @@ def pretrain_model(meta_model:model.MetaModel, serial=1):
             meta_optimizer.step()
             loss += total_loss.item()
         pbar.set_description(f"Loss: {loss/len(dataloader1)/2}")
+        config.log({"loss": loss/len(dataloader1)/2})
         pbar.update(1)
     meta_model.heads = [head1, head2]
     for i in range(7):
@@ -103,21 +106,19 @@ def train_new_head(meta_model:model.MetaModel, time_steps, replay=False):
                             s=4)
     dataloader = DataLoader(dataset, batch_size=1, shuffle=True, num_workers=0)
     pbar = tqdm(total=meta_model.outer_steps)
-    total_coords = dataset.total_coords
-    split_total_coords = torch.split(total_coords, 32000, dim=0)
 
     head = model.Head().to(config.device)
     if len(meta_model.heads) > 0:
         head.load_state_dict(meta_model.heads[-1].state_dict())
-    head_model = l2l.algorithms.MAML(head, lr=1e-3, first_order=True, allow_unused=True).to(config.device)
-    backbone_model = l2l.algorithms.MAML(meta_model.backbone, lr=1e-5, first_order=True, allow_unused=True).to(config.device)
+    head_model = l2l.algorithms.MAML(head, lr=1e-4, first_order=True, allow_unused=True).to(config.device)
+    backbone_model = l2l.algorithms.MAML(meta_model.backbone, lr=1e-4, first_order=True, allow_unused=True).to(config.device)
     replay_batch = None
     meta_optimizer = torch.optim.Adam([
         {'params': head_model.parameters(), 'lr': meta_model.meta_lr},
-        # {'params': backbone_model.parameters(), 'lr': meta_model.meta_lr}
+        {'params': backbone_model.parameters(), 'lr': meta_model.meta_lr}
     ])
     for outer_step in range(meta_model.outer_steps):
-        replay_set = subset_clip(meta_model.replay_buffer,3)
+        replay_set = subset_clip(meta_model.replay_buffer,1)
         loss = 0.0
         replay_loss = 0.0
         for ind, meta_batch in enumerate(dataloader):
@@ -131,15 +132,10 @@ def train_new_head(meta_model:model.MetaModel, time_steps, replay=False):
             for i in range(effective_batch_size):
                 learner = head_model.clone()
                 backbone_learner = backbone_model.clone()
-                # optimizer = torch.optim.Adam(learner.parameters(), lr=1e-4)
                 for _ in range(meta_model.inner_steps):
-                    # optimizer.zero_grad()
                     support_preds = learner(backbone_learner(sample['context']['x'][i]))
                     support_loss = loss_func(support_preds, sample['context']['y'][i].unsqueeze(-1))
-                    # support_loss.backward()
-                    # optimizer.step()
                     learner.adapt(support_loss)
-                    # backbone_learner.adapt(support_loss)
                 adapt_loss = loss_func(learner(backbone_learner(sample['query']['x'][i])), sample['query']['y'][i].unsqueeze(-1))
                 step_loss += adapt_loss
             step_loss = step_loss/effective_batch_size
@@ -153,13 +149,13 @@ def train_new_head(meta_model:model.MetaModel, time_steps, replay=False):
                     for i in range(effective_batch_size):
                         adapt_loss = loss_func(replay_head(backbone_model(sample['query']['x'][i])), sample['query']['y'][i].unsqueeze(-1))
                         replay_step_loss += adapt_loss
-                    replay_step_loss = replay_step_loss/effective_batch_size/len(replay_set)*len(dataloader)
+                    replay_step_loss = replay_step_loss/effective_batch_size/len(replay_set)
                     step_loss += replay_step_loss
                     replay_loss += replay_step_loss
 
             step_loss.backward()
             meta_optimizer.step()
-        pbar.set_description(f"Loss: {loss/(len(dataloader))}, Replay: {replay_loss}")
+        pbar.set_description(f"Loss: {loss/len(dataloader)}, Replay: {replay_loss/len(dataloader)}")
         pbar.update(1)
     meta_model.heads.append(head)
     if replay:
@@ -210,16 +206,25 @@ def load_models(serial=1)->model.MetaModel:
     return model.MetaModel().load_in(meta_model.__dict__)
 
 
-def run(pretrain=False, serial=1, run_id=1,replay=False):
+def run(pretrain=False, serial=None, run_id=1,replay=False,dataset=None,var=None):
     config.run_id = run_id
+    config.enabled_replay = replay
+    if dataset is not None:
+        config.target_dataset = dataset
+        config.target_var = var if var is not None else "default"
+        config.test_timesteps = range(1,config.get_size_of_dataset(config.target_dataset)+1)
+    if serial is None:
+        serial = config.dataset_to_serial[config.target_dataset]
     if pretrain:
+        config.pretraining = True
         meta_model = model.MetaModel()
         pretrain_model(meta_model, serial)
         return
-    meta_model = load_models(1)
+    meta_model = load_models(serial)
+    print(f"Model Structure: {meta_model.backbone.layers}+{meta_model.heads[0].layers}")
     meta_model.frame_head_correspondence += [-1]*max(len(config.test_timesteps)-len(meta_model.frame_head_correspondence),0)
 
-    meta_model.meta_lr = 1e-4
+    meta_model.meta_lr = 5e-5
     meta_model.outer_steps = 50
 
     dataset = MetaDataset(config.target_dataset, config.target_var, config.test_timesteps,
@@ -262,13 +267,14 @@ def run(pretrain=False, serial=1, run_id=1,replay=False):
     print("Online Seq PSNR PSNR_list: ", meta_model.online_PSNR_seq)
     print("Online Par PSNR PSNR_list: ", meta_model.online_PSNR_par)
 
-    # meta_model = load_models(2)
+    # meta_model = load_models(serial+1)
     print("Head Frame Correspondence: ", meta_model.frame_head_correspondence)
 
     # Head Frame Linked Eval
     meta_model.transfer_PSNR = []
     for step, meta_batch in enumerate(tqdm(dataloader, desc="Transfer Inferring", leave=False)):
         PSNR, loss = evaluate(meta_model,meta_model.frame_head_correspondence[step], split_total_coords, meta_batch, step)
+        print(f"Transfer Linked PSNR {step}: {PSNR} Loss: {loss}")
         meta_model.transfer_PSNR.append(PSNR)
     transfer_encode_time = meta_model.tmp_encode_time
     meta_model.tmp_encode_time = 0
@@ -284,7 +290,7 @@ def run(pretrain=False, serial=1, run_id=1,replay=False):
         meta_model.last_frame_PSNR.append(PSNR)
     print(f"Final Average PSNR: {np.mean(meta_model.last_frame_PSNR)}")
     print("Final PSNR_list: ", meta_model.last_frame_PSNR)
-    save_models(meta_model, 2)
+    save_models(meta_model, serial+1)
 
 if __name__ == "__main__":
     fire.Fire(run)

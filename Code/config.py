@@ -8,17 +8,29 @@ import json
 
 machine = platform.node()
 
+target_dataset = "fivejet500"
+target_var = "default"
 # target_dataset = "half-cylinder"
 # target_var = "640"
-target_dataset = "vorts"
-target_var = "default"
-train_timesteps = range(1, 91, 1)
-test_timesteps = range(1, 91, 1)
+# test_timesteps = range(1, 101, 1)
+# target_dataset = "vorts"
+# target_var = "default"
+# test_timesteps = range(1, 91, 1)
 
+enabled_replay = False
+pretraining = False
+INR_training = False
 # source_dataset = ["160", "320", "6400"]
 # pretrain_vars = ["RAIN", "WSMAG"]
 
 # target_var = "VAPOR"
+dataset_to_serial = {
+    "half-cylinder": 1,
+    "vorts": 3,
+    "fivejet500": 5,
+    "supernova": 7,
+    "tangaroa": 9,
+}
 
 enable_logging = False
 device = torch.device('cuda')
@@ -81,6 +93,7 @@ enable_restorer = False
 print("Machine is", machine)
 print(f"Running on {device} with batch size {batch_size}")
 print("logging is", "enabled" if enable_logging else "disabled")
+print("Dataset is", target_dataset)
 
 
 def seed_everything(seed=42):
@@ -99,12 +112,21 @@ log_obj = None
 def init_logging():
     global log_obj
     assert log_obj is None, "run is already set"
-    assert run_id is not None, "run_id is not set"
     import keys
+    flag = ''
+    if enabled_replay:
+        flag = '-replay'
+    elif pretraining:
+        flag = '-pretrain'
+    elif INR_training:
+        flag = '-INR'
+    else:
+        flag = '-w/o-replay'
+
     log_obj = neptune.init_run(
         project="VRNET/MetaINR",
         api_token=keys.NEPTUNE_API_TOKEN,
-        name=f'{run_id:03d}-{machine}',
+        name=f'{target_dataset}-{target_var}'+flag,
         tags=tags,
     )
     params = {
@@ -159,10 +181,26 @@ def log_all():
     for k in list(tracking_obj.keys()):
         log({k: view(k)})
 
+json_data = {}
 
-def get_dims_of_dataset(dataset):
+def load_json_data(dataset):
+    global json_data
     data_dir = root_data_dir + dataset + '/'
     dataset_json = data_dir + 'dataset.json'
-    json_data = json.load(open(dataset_json))
-    dims = json_data['dims']
+    json_data[dataset] = json.load(open(dataset_json))
+def get_dims_of_dataset(dataset):
+    global json_data
+    if dataset not in json_data:
+        load_json_data(dataset)
+    dims = json_data[dataset]['dims']
     return dims
+
+def get_size_of_dataset(dataset):
+    global json_data
+    if dataset not in json_data:
+        load_json_data(dataset)
+    size = json_data[dataset]['total_samples']
+    return size
+
+
+test_timesteps = range(1, get_size_of_dataset(target_dataset), 1)

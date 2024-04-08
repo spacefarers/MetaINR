@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="957b80e6-ee61-41bd-ad91-c273395304a1" name="crc1">
+        <fileTransfer accessType="SFTP" host="crcfe01.crc.nd.edu" port="22" sshConfigId="a6506cdd-3b1f-43a0-bdae-0c241dfff6b2" sshConfig="myang9@crcfe01.crc.nd.edu:22 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" keepAliveTimeout="0" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>

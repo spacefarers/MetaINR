@@ -19,13 +19,14 @@ class Base(nn.Module):
         return coords
 
 class Backbone(nn.Module):
-    def __init__(self, base=None, layers=1):
+    def __init__(self, base=None, layers=2):
         super(Backbone, self).__init__()
         self.net = [
             SineLayer(3, 64),
             SineLayer(64, 128),
             SineLayer(128, 256),
         ]
+        self.layers = layers
         for i in range(layers):
             self.net.append(SineLayer(256, 256))
         self.net = nn.Sequential(*self.net)
@@ -39,6 +40,7 @@ class Head(nn.Module):
     def __init__(self, backbone=None, layers=2):
         super(Head, self).__init__()
         self.net = []
+        self.layers = layers
         for i in range(layers):
             self.net.append(SineLayer(256, 256))
         self.net.append(LinearLayer(256,1))

@@ -8,6 +8,7 @@ from dataio import *
 from collections.abc import Mapping
 from torch import nn
 import config
+import fire
 
 # some times you only want small parts of volumes
 
@@ -18,7 +19,7 @@ def dict_to_gpu(ob):
     if isinstance(ob, Mapping):
         return {k: dict_to_gpu(v) for k, v in ob.items()}
     else:
-        return ob.cuda()    
+        return ob.cuda()
 
 
 def get_volumes(paths):
@@ -29,11 +30,17 @@ def get_volumes(paths):
     volumes = torch.cat(volumes, dim=0)
     return volumes
 
-if __name__ == "__main__":
+def run(train_iterations=650, dataset=None, var=None):
     config.run_id = 1
-    lr  = 1e-4 
-    train_iterations = 500
+    config.INR_training = True
+    if dataset is not None:
+        config.target_dataset = dataset
+        config.target_var = var if var is not None else "default"
+        config.test_timesteps = range(1,config.get_size_of_dataset(config.target_dataset)+1)
+
+    lr  = 1e-4
     BatchSize = 1
+    print("Training iterations: ", train_iterations)
     
     
     loss_func = nn.MSELoss()
@@ -98,9 +105,11 @@ if __name__ == "__main__":
         # saveDat(v_res, f"./results/preds{steps:04d}.raw")
         pbar.update(1)
         pbar.set_description(f"volume time step: {steps}")
-    print("PSNR: ", np.mean(PSNR_list))
+    print("Final PSNR: ", np.mean(PSNR_list))
     print("PSNR list: ", PSNR_list)
     torch.save(models, f"{config.temp_dir}/models.pth")
-
-print("Total encoding time: ", total_encoding_time)
+    print("Total encoding time: ", total_encoding_time)
 # 73.5MB Vorts 1-80 36.08
+
+if __name__ == "__main__":
+    fire.Fire(run)
