@@ -19,12 +19,13 @@ def run_a_task(task_number):
         target, dataset, var, ts_range_st, ts_range_end = lines[task_number].strip().split(",")
     ts_range = (int(ts_range_st), int(ts_range_end))
     config.log({"target": target, "dataset": dataset, "var": var, "ts_range": str(ts_range)})
-    if target == "baseline":
-        baseline.run(dataset=dataset, var=var, ts_range=ts_range)
-    elif target == "INR":
-        INR_encoding.run(dataset=dataset, var=var, ts_range=ts_range)
-    elif target == "MetaINR":
+    if target == "MetaINR":
         main.run(dataset=dataset, var=var, ts_range=ts_range)
+    elif target == "baseline":
+        baseline.run(dataset=dataset, var=var, ts_range=ts_range)
+    elif "INR" in target:
+        train_iters = int(target.replace("INR", ""))
+        INR_encoding.run(dataset=dataset, var=var, ts_range=ts_range, train_iterations=train_iters)
 
 
 if __name__ == '__main__':

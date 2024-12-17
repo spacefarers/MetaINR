@@ -52,7 +52,7 @@ def shuffle_and_batch(total_coords, total_values, BatchSize, s=1):
     return split_coords, split_values
 
 
-def fast_adapt(batch, learner, adapt_opt, adaptation_steps, batch_size, draw_tsne=None):
+def fast_adapt(batch, learner, adapt_opt, adaptation_steps, batch_size):
     data, labels = batch
     total_loss = 0
     for step in range(adaptation_steps):
@@ -66,10 +66,6 @@ def fast_adapt(batch, learner, adapt_opt, adaptation_steps, batch_size, draw_tsn
             loss.backward()
             total_loss += loss
             adapt_opt.step()
-        if draw_tsne is not None:
-            step_out, ind = draw_tsne
-            if step % 1 == 0:
-                torch.save(learner.state_dict(), config.model_dir+f"{config.target_dataset}_{config.target_var}/tsne_train_{step_out}_{ind}_{step}.pth")
     return total_loss
 
 
@@ -93,10 +89,10 @@ def evaluate(batch, learner, batch_size):
     return PSNR
 
 
-def run(dataset="vorts", var="default", train=True, ts_range=None, lr=1e-4, fast_lr=1e-4, adapt_lr=1e-5, draw_tsne=True):
+def run(dataset="earthquake", var="default", train=True, ts_range=None, lr=1e-4, fast_lr=1e-4, adapt_lr=1e-5):
     # config.enable_logging = True
     if ts_range is None or len(ts_range) != 2:
-        ts_range = (10, 25)
+        ts_range = (0, 598)
     var = str(var)
     config.target_dataset = dataset
     config.target_var = var
@@ -117,7 +113,7 @@ def run(dataset="vorts", var="default", train=True, ts_range=None, lr=1e-4, fast
 
     # train
     if train:
-        train_dataset = MetaDataset(dataset, var, t_range=ts_range, s=4)
+        train_dataset = MetaDataset(dataset, var, t_range=ts_range, s=4, subsample_half=True)
         total_pretrain_time = 0
         tic = time.time()
         for step in tqdm(range(outer_steps)):
@@ -126,24 +122,20 @@ def run(dataset="vorts", var="default", train=True, ts_range=None, lr=1e-4, fast
             for p in net.parameters():
                 p.grad = torch.zeros_like(p.data)
             total_loss = 0
-            # with BatchData(train_dataset, BatchSize, s=64, inner_steps
-            if draw_tsne and step % 1 == 0:
-                torch.save(net.state_dict(), config.model_dir+f"{dataset}_{var}/tsne_train_{step}.pth")
-            for ind in np.random.choice(len(train_dataset), len(train_dataset)//2):
+            for ind in range(len(train_dataset)):
                 learner = deepcopy(net)
                 adapt_opt = torch.optim.Adam(learner.parameters(), lr=fast_lr)
                 adapt_opt.load_state_dict(adapt_opt_state)
                 train_coords = train_dataset[ind]["all"]["x"]
                 train_value = train_dataset[ind]["all"]["y"]
                 batch = (train_coords, train_value)
-                draw_tsne_pack = [step, ind] if draw_tsne and step % 1 == 0 else None
-                loss = fast_adapt(batch, learner, adapt_opt, inner_steps, BatchSize, draw_tsne_pack)
+                loss = fast_adapt(batch, learner, adapt_opt, inner_steps, BatchSize)
                 total_loss += loss
                 adapt_opt_state = adapt_opt.state_dict()
                 for p, l in zip(net.parameters(), learner.parameters()):
                     p.grad.data.add_(l.data, alpha=-1.0)
             for p in net.parameters():
-                p.grad.data.mul_(1.0/(len(train_dataset)//2)).add_(p.data)
+                p.grad.data.mul_(1.0/(len(train_dataset))).add_(p.data)
             opt.step()
             config.log({"loss": total_loss})
 
@@ -199,8 +191,6 @@ def run(dataset="vorts", var="default", train=True, ts_range=None, lr=1e-4, fast
                     optimizer.zero_grad()
                     loss.backward()
                     optimizer.step()
-                if draw_tsne and step % 1 == 0:
-                    torch.save(learner.state_dict(), config.model_dir+f"{dataset}_{var}/eval3_{ts_range[0]+steps}_{step}.pth")
 
                 # config.log({"loss": loss})
             toc = time.time()
@@ -223,7 +213,7 @@ def run(dataset="vorts", var="default", train=True, ts_range=None, lr=1e-4, fast
             try:
                 os.makedirs(config.model_dir, exist_ok=True)
                 os.makedirs(config.model_dir+f"{dataset}_{var}", exist_ok=True)
-                torch.save(learner.state_dict(), config.model_dir+f"{dataset}_{var}/eval_{ts_range[0]+steps}.pth")
+                torch.save(learner.state_dict(), config.model_dir+f"{dataset}_{var}/eval_metainr_{ts_range[0]+steps}.pth")
             except Exception as e:
                 print(e)
             pbar.update(1)

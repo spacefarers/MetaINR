@@ -68,17 +68,16 @@ def run(dataset="vorts", var="default", train=True, ts_range=None, lr=1e-4, fast
 
     loss_func = nn.MSELoss()
 
-    test_dataset = MetaDataset(dataset, var, t_range=ts_range, s=4)
-
     # train
     if train:
         total_pretrain_time = 0
+        train_dataset = MetaDataset(dataset, var, t_range=ts_range, s=4, subsample_half=True)
         tic = time.time()
         for step in tqdm(range(outer_steps*inner_steps)):
             # randomly select half
-            for ind in np.random.choice(len(test_dataset), len(test_dataset)//2):
-                total_coords = test_dataset[ind]["all"]["x"]
-                total_values = test_dataset[ind]["all"]["y"]
+            for ind in range(len(train_dataset)):
+                total_coords = train_dataset[ind]["all"]["x"]
+                total_values = train_dataset[ind]["all"]["y"]
                 split_coords, split_values = shuffle_and_batch(total_coords, total_values, BatchSize)
                 step_loss = 0
                 for t_coords, t_value in zip(split_coords, split_values):
@@ -169,7 +168,7 @@ def run(dataset="vorts", var="default", train=True, ts_range=None, lr=1e-4, fast
             try:
                 os.makedirs(config.model_dir, exist_ok=True)
                 os.makedirs(config.model_dir+f"{dataset}_{var}", exist_ok=True)
-                torch.save(learner.state_dict(), config.model_dir+f"{dataset}_{var}/eval_{ts_range[0]+steps}.pth")
+                torch.save(learner.state_dict(), config.model_dir+f"{dataset}_{var}/eval_baseline_{ts_range[0]+steps}.pth")
             except Exception as e:
                 print(e)
             pbar.update(1)

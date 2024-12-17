@@ -4,7 +4,7 @@ INR as a baseline for comparison with MetaINR.
 Runs INR of a 5-layer SIREN model on the given dataset and variable.
 Computes Average PSNR for the given time steps range.
 """
-
+import torch
 
 from models import CoordNet, SIREN
 from dataio import *
@@ -32,10 +32,8 @@ def get_volumes(paths):
     return volumes
 
 
-def run(dataset="vorts", var="default", ts_range=None):
-    lr = 1e-5
+def run(dataset="vorts", var="default", ts_range=None, train_iterations=100, lr=1e-5):
     config.log({"lr": lr})
-    train_iterations = 100
     BatchSize = 50000
 
     loss_func = nn.MSELoss()
@@ -83,6 +81,7 @@ def run(dataset="vorts", var="default", ts_range=None):
             if st % 50 == 0:
                 config.log({"loss": loss})
         toc = time.time()
+        torch.save(model.state_dict(), config.model_dir+f"{dataset}_{var}/eval_inr{train_iterations}_{ts_range[0]+steps}.pth")
         total_encoding_time += toc-tic
 
         # decoding

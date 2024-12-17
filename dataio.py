@@ -9,7 +9,7 @@ import config
 
 
 class MetaDataset(Dataset):
-    def __init__(self, dataset, var, t_range=None, dims=None, s=4):
+    def __init__(self, dataset, var, t_range=None, dims=None, s=4, subsample_half=False):
         if dims is None:
             dims = [64, 64, 64]
         dims = config.get_dims_of_dataset(dataset)
@@ -17,6 +17,8 @@ class MetaDataset(Dataset):
         self.v_paths = getFilePathsInDir(self.v_dir)
         if var != "all":
             self.v_paths = self.v_paths[t_range[0]:t_range[1]]
+        if subsample_half:
+            self.v_paths = self.v_paths[::2]
         ic(self.v_paths)
         self.v_dataset = self.get_volumes(self.v_paths)
         self.total_coords = torch.tensor(get_mgrid(dims, dim=3, s=1), dtype=torch.float32)
