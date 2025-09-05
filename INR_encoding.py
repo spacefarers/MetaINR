@@ -43,8 +43,6 @@ def run(dataset="vorts", var="default", ts_range=None, train_iterations=100, lr=
     test_dataset = MetaDataset(dataset, var, t_range=ts_range, s=1)
 
     test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=0)
-    config.set_status("INR encoding")
-
 
     # evaluation
     total_encoding_time = 0.0

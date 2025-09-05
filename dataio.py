@@ -19,7 +19,7 @@ class MetaDataset(Dataset):
             self.v_paths = self.v_paths[t_range[0]:t_range[1]]
         if subsample_half:
             self.v_paths = self.v_paths[::2]
-        ic(self.v_paths)
+        print(self.v_paths)
         self.v_dataset = self.get_volumes(self.v_paths)
         self.total_coords = torch.tensor(get_mgrid(dims, dim=3, s=1), dtype=torch.float32)
         self.subsample_indices = self.Space_Subsample(dims, s)
@@ -74,7 +74,7 @@ class PretrainDataset(Dataset):
         self.v_paths = getFilePathsInDir(self.v_dir)[t_range[0]:t_range[1]:2] if split == 'train' else getFilePathsInDir(self.v_dir)[t_range[0]:t_range[1]]
         self.dims = dims
         self.s = s
-        ic(self.v_paths)
+        print(self.v_paths)
         self.dataset = self.get_TrainDataSet()
 
     def get_TrainDataSet(self):

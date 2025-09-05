@@ -54,7 +54,6 @@ def run(dataset="vorts", var="default", train=True, ts_range=None, lr=1e-4, fast
     config.target_dataset = dataset
     config.target_var = var
     config.seed_everything(42)
-    config.set_status("baseline-train")
     meta_lr = float(lr)
     fast_lr = float(fast_lr)
     config.log({"lr": meta_lr, "adapt_lr": adapt_lr})
@@ -102,8 +101,6 @@ def run(dataset="vorts", var="default", train=True, ts_range=None, lr=1e-4, fast
         config.log({"total_pretrain_time": total_pretrain_time})
     else:
         net.load_state_dict(torch.load(config.model_dir+f"{dataset}_{var}/baseline_{ts_range[0]}_{ts_range[1]}.pth"))
-
-    config.set_status("baseline-eval")
 
     # evaluation
     total_encoding_time = 0.0
