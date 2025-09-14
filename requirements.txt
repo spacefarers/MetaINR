@@ -1,0 +1,11 @@
+torch
+numpy
+tqdm
+fire
+einops
+icecream
+Pillow
+matplotlib
+pandas
+openpyxl
+neptune

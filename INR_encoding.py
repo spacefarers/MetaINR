@@ -4,14 +4,16 @@ INR as a baseline for comparison with MetaINR.
 Runs INR of a 5-layer SIREN model on the given dataset and variable.
 Computes Average PSNR for the given time steps range.
 """
-import torch
 
-from models import CoordNet, SIREN
-from dataio import *
 from collections.abc import Mapping
-from tqdm import tqdm
-from torch import nn
+
 import fire
+import torch
+from torch import nn
+from tqdm import tqdm
+
+from dataio import *
+from models import SIREN, CoordNet
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -52,10 +54,12 @@ def run(dataset="vorts", var="default", ts_range=None, train_iterations=100, lr=
     PSNRs = []
     for steps, meta_batch in enumerate(test_dataloader):
         # init
-        train_coords = meta_batch['all']['x'].squeeze()
-        train_value = meta_batch['all']['y'].squeeze()
+        train_coords = meta_batch["all"]["x"].squeeze()
+        train_value = meta_batch["all"]["y"].squeeze()
 
-        model = SIREN(in_features=3, out_features=1, init_features=64, num_res=5).to(device)  # num_res kind of sensitive
+        model = SIREN(in_features=3, out_features=1, init_features=64, num_res=5).to(
+            device
+        )  # num_res kind of sensitive
         optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
         # encoding
@@ -79,8 +83,11 @@ def run(dataset="vorts", var="default", ts_range=None, train_iterations=100, lr=
             if st % 50 == 0:
                 config.log({"loss": loss})
         toc = time.time()
-        torch.save(model.state_dict(), config.model_dir+f"{dataset}_{var}/eval_inr{train_iterations}_{ts_range[0]+steps}.pth")
-        total_encoding_time += toc-tic
+        torch.save(
+            model.state_dict(),
+            config.model_dir + f"{dataset}_{var}/eval_inr{train_iterations}_{ts_range[0]+steps}.pth",
+        )
+        total_encoding_time += toc - tic
 
         # decoding
         v_res = []
@@ -89,11 +96,11 @@ def run(dataset="vorts", var="default", ts_range=None, train_iterations=100, lr=
             preds = model(inf_coords).detach().squeeze().cpu().numpy()
             v_res += list(preds)
         v_res = np.asarray(v_res, dtype=np.float32)
-        y_vals = meta_batch['total']['y'].squeeze().cpu()
+        y_vals = meta_batch["total"]["y"].squeeze().cpu()
         y_vals = np.asarray(y_vals, dtype=np.float32)
-        GT_range = y_vals.max()-y_vals.min()
-        MSE = np.mean((v_res-y_vals)**2)
-        PSNR = 20*np.log10(GT_range)-10*np.log10(MSE)
+        GT_range = y_vals.max() - y_vals.min()
+        MSE = np.mean((v_res - y_vals) ** 2)
+        PSNR = 20 * np.log10(GT_range) - 10 * np.log10(MSE)
         PSNRs.append(PSNR)
         config.log({"PSNR": PSNR})
         pbar.update(1)
@@ -102,8 +109,6 @@ def run(dataset="vorts", var="default", ts_range=None, train_iterations=100, lr=
     print("Total encoding time: ", total_encoding_time)
     config.log({"total_encoding_time": total_encoding_time})
     config.log({"average_PSNR": np.mean(PSNRs)})
-
-
 
 
 if __name__ == "__main__":

@@ -1,19 +1,33 @@
+import math
+
+import keys
+import pandas as pd
 from neptune import Project
 
 import config
-import keys
-import pandas as pd
-import math
 
 project = Project(project="VRNET/MetaINR", api_token=keys.NEPTUNE_API_TOKEN, mode="read-only")
-exps = project.fetch_runs_table(columns=["sys/creation_time", "sys/running_time", "sys/description", "average_PSNR", "dataset", "target"]).to_pandas().sort_values(by="sys/creation_time", ascending=False)
+exps = (
+    project.fetch_runs_table(
+        columns=[
+            "sys/creation_time",
+            "sys/running_time",
+            "sys/description",
+            "average_PSNR",
+            "dataset",
+            "target",
+        ]
+    )
+    .to_pandas()
+    .sort_values(by="sys/creation_time", ascending=False)
+)
 
 # no spaces allowed!
 notes = [
     ["MetaINR(new) 1e-4 1e-4 1e-5", 0],
     ["VP 1e-4 1e-4 1e-5", 0],
     ["INR100", 0],
-    ["INR16", 0]
+    ["INR16", 0],
 ]
 
 datasets = [
@@ -49,7 +63,11 @@ for index, row in exps.iterrows():
         runtime_m = int((runtime_s % 3600) // 60)
         runtime_s = int(runtime_s % 60)
         # if no hour, display min and sec, otherwise display hour and min
-        time_display = f"{runtime_h}h {runtime_m}m" if runtime_h > 0 else f"{runtime_m}m {runtime_s}s" if not math.isnan(row["average_PSNR"]) else "..."
+        time_display = (
+            f"{runtime_h}h {runtime_m}m"
+            if runtime_h > 0
+            else (f"{runtime_m}m {runtime_s}s" if not math.isnan(row["average_PSNR"]) else "...")
+        )
         table[activated_context][dataset] = f"{row['average_PSNR']:.2f} ({time_display})"
 
 table["INR100"]["fivejet"] = "43.60 (31m 19s)"

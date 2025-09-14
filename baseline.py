@@ -5,15 +5,16 @@ A simple pretrain baseline for comparison with MetaINR.
 Instead of using inner steps to guide training of the Meta Model, this script takes the naive approach of directly training the meta model on the dataset.
 """
 
-
-from models import SIREN
-from dataio import *
 from collections.abc import Mapping
-from tqdm import tqdm
-import config
-from torch import nn
-import fire
 from copy import deepcopy
+
+import fire
+from torch import nn
+from tqdm import tqdm
+
+import config
+from dataio import *
+from models import SIREN
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -35,7 +36,7 @@ def get_volumes(paths):
 
 
 def shuffle_and_batch(total_coords, total_values, batch_size, s=1):
-    indices = torch.randperm(total_coords.shape[0]//s)
+    indices = torch.randperm(total_coords.shape[0] // s)
     total_coords = total_coords[indices]
     total_values = total_values[indices]
 
@@ -47,7 +48,16 @@ def shuffle_and_batch(total_coords, total_values, batch_size, s=1):
 # todo: [] add train from scratch code
 # todo: [] find a way to measure how to determine which data can be best optmise by meta-learning
 
-def run(dataset="vorts", var="default", train=True, ts_range=None, lr=1e-4, fast_lr=1e-4, adapt_lr=1e-5):
+
+def run(
+    dataset="vorts",
+    var="default",
+    train=True,
+    ts_range=None,
+    lr=1e-4,
+    fast_lr=1e-4,
+    adapt_lr=1e-5,
+):
     if ts_range is None or len(ts_range) != 2:
         ts_range = (10, 25)
     var = str(var)
@@ -72,7 +82,7 @@ def run(dataset="vorts", var="default", train=True, ts_range=None, lr=1e-4, fast
         total_pretrain_time = 0
         train_dataset = MetaDataset(dataset, var, t_range=ts_range, s=4, subsample_half=True)
         tic = time.time()
-        for step in tqdm(range(outer_steps*inner_steps)):
+        for step in tqdm(range(outer_steps * inner_steps)):
             # randomly select half
             for ind in range(len(train_dataset)):
                 total_coords = train_dataset[ind]["all"]["x"]
@@ -88,37 +98,40 @@ def run(dataset="vorts", var="default", train=True, ts_range=None, lr=1e-4, fast
                 optimizer.zero_grad()
                 step_loss.backward()
                 optimizer.step()
-            if step%inner_steps == 0:
+            if step % inner_steps == 0:
                 config.log({"loss": step_loss})
 
-        total_pretrain_time += time.time()-tic
+        total_pretrain_time += time.time() - tic
         os.makedirs(config.model_dir, exist_ok=True)
-        os.makedirs(config.model_dir+f"{dataset}_{var}", exist_ok=True)
+        os.makedirs(config.model_dir + f"{dataset}_{var}", exist_ok=True)
         try:
-            torch.save(net.state_dict(), config.model_dir+f"{dataset}_{var}/baseline_{ts_range[0]}_{ts_range[1]}.pth")
+            torch.save(
+                net.state_dict(),
+                config.model_dir + f"{dataset}_{var}/baseline_{ts_range[0]}_{ts_range[1]}.pth",
+            )
         except Exception as e:
             print(e)
         config.log({"total_pretrain_time": total_pretrain_time})
     else:
-        net.load_state_dict(torch.load(config.model_dir+f"{dataset}_{var}/baseline_{ts_range[0]}_{ts_range[1]}.pth"))
+        net.load_state_dict(torch.load(config.model_dir + f"{dataset}_{var}/baseline_{ts_range[0]}_{ts_range[1]}.pth"))
 
     # evaluation
     total_encoding_time = 0.0
     PSNRs = []
     eval_batch = 50  # avoid memory overflow
     ts_batch_range = list(range(ts_range[0], ts_range[1], eval_batch))
-    pbar = tqdm(total=ts_range[1]-ts_range[0])
+    pbar = tqdm(total=ts_range[1] - ts_range[0])
     for batch_num, ts_start in enumerate(ts_batch_range):
-        ts_end = min(ts_start+eval_batch, ts_range[1])
+        ts_end = min(ts_start + eval_batch, ts_range[1])
         full_dataset = MetaDataset(dataset, var, t_range=(ts_start, ts_end), s=1)
         full_dataloader = DataLoader(full_dataset, batch_size=1, shuffle=False, num_workers=0)
         total_coords = full_dataset.total_coords
         split_total_coords = torch.split(total_coords, BatchSize, dim=0)
         for inside_num, meta_batch in enumerate(full_dataloader):
-            steps = batch_num*eval_batch+inside_num
+            steps = batch_num * eval_batch + inside_num
             # init
-            train_coords = meta_batch['all']['x'].squeeze()
-            train_value = meta_batch['all']['y'].squeeze()
+            train_coords = meta_batch["all"]["x"].squeeze()
+            train_value = meta_batch["all"]["y"].squeeze()
 
             # encoding
             tic = time.time()
@@ -146,7 +159,7 @@ def run(dataset="vorts", var="default", train=True, ts_range=None, lr=1e-4, fast
 
                 # config.log({"loss": loss})
             toc = time.time()
-            total_encoding_time += toc-tic
+            total_encoding_time += toc - tic
 
             # decoding
             v_res = []
@@ -155,17 +168,20 @@ def run(dataset="vorts", var="default", train=True, ts_range=None, lr=1e-4, fast
                 preds = learner(inf_coords).detach().squeeze().cpu().numpy()
                 v_res += list(preds)
             v_res = np.asarray(v_res, dtype=np.float32)
-            y_vals = meta_batch['total']['y'].squeeze().cpu()
+            y_vals = meta_batch["total"]["y"].squeeze().cpu()
             y_vals = np.asarray(y_vals, dtype=np.float32)
-            GT_range = y_vals.max()-y_vals.min()
-            MSE = np.mean((v_res-y_vals)**2)
-            PSNR = 20*np.log10(GT_range)-10*np.log10(MSE)
+            GT_range = y_vals.max() - y_vals.min()
+            MSE = np.mean((v_res - y_vals) ** 2)
+            PSNR = 20 * np.log10(GT_range) - 10 * np.log10(MSE)
             PSNRs.append(PSNR)
             config.log({"PSNR": PSNR})
             try:
                 os.makedirs(config.model_dir, exist_ok=True)
-                os.makedirs(config.model_dir+f"{dataset}_{var}", exist_ok=True)
-                torch.save(learner.state_dict(), config.model_dir+f"{dataset}_{var}/eval_baseline_{ts_range[0]+steps}.pth")
+                os.makedirs(config.model_dir + f"{dataset}_{var}", exist_ok=True)
+                torch.save(
+                    learner.state_dict(),
+                    config.model_dir + f"{dataset}_{var}/eval_baseline_{ts_range[0]+steps}.pth",
+                )
             except Exception as e:
                 print(e)
             pbar.update(1)
@@ -176,5 +192,5 @@ def run(dataset="vorts", var="default", train=True, ts_range=None, lr=1e-4, fast
     config.log({"average_PSNR": np.mean(PSNRs)})
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     fire.Fire(run)

@@ -8,21 +8,24 @@ The model is trained on a range of time steps and can be adapted to new time ste
 Achieves significantly better performance than training INR from scratch or using a simple baseline pretrained model.
 """
 
-from models import SIREN
-from dataio import *
-from collections.abc import Mapping
-from tqdm import tqdm
-import config
-from torch import nn
-import fire
-from copy import deepcopy
-import time
 import os
+import time
+from collections.abc import Mapping
+from copy import deepcopy
+
+import fire
 import numpy as np
+from torch import nn
+from tqdm import tqdm
+
+import config
+from dataio import *
+from models import SIREN
 
 # Set the device for PyTorch
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 loss_func = nn.MSELoss()  # Mean Squared Error loss function
+
 
 def dict_to_gpu(ob):
     """Recursively move a dictionary or tensor to the GPU."""
@@ -30,6 +33,7 @@ def dict_to_gpu(ob):
         return {k: dict_to_gpu(v) for k, v in ob.items()}
     else:
         return ob.cuda()
+
 
 def get_volumes(paths):
     """Read and concatenate volumes from given file paths."""
@@ -39,6 +43,7 @@ def get_volumes(paths):
         volumes.append(torch.tensor(v, dtype=torch.float32))  # Convert to tensor
     volumes = torch.cat(volumes, dim=0)  # Concatenate volumes along the first dimension
     return volumes
+
 
 def shuffle_and_batch(total_coords, total_values, BatchSize, s=1):
     """Shuffle and batch the coordinates and values."""
@@ -50,6 +55,7 @@ def shuffle_and_batch(total_coords, total_values, BatchSize, s=1):
     split_coords = torch.split(total_coords, BatchSize, dim=0)
     split_values = torch.split(total_values, BatchSize, dim=0)
     return split_coords, split_values
+
 
 def fast_adapt(batch, learner, adapt_opt, adaptation_steps, batch_size):
     """Perform fast adaptation for the learner on the given batch."""
@@ -67,6 +73,7 @@ def fast_adapt(batch, learner, adapt_opt, adaptation_steps, batch_size):
             total_loss += loss
             adapt_opt.step()  # Update parameters
     return total_loss
+
 
 def evaluate(batch, learner, batch_size):
     """Evaluate the learner on the given batch and return PSNR."""
@@ -92,11 +99,20 @@ def evaluate(batch, learner, batch_size):
     PSNR = 20 * np.log10(GT_range) - 10 * np.log10(MSE)
     return PSNR
 
-def run(dataset="half-cylinder", var="640", train=True, ts_range=None, lr=1e-4, fast_lr=1e-4, adapt_lr=1e-5):
+
+def run(
+    dataset="vorts",
+    var="default",
+    train=True,
+    ts_range=None,
+    lr=1e-4,
+    fast_lr=1e-4,
+    adapt_lr=1e-5,
+):
     """Main function to run the MetaINR training or evaluation."""
     # change ts_range to limit the range of time steps to run on
     if ts_range is None or len(ts_range) != 2:
-        ts_range = (0, 598)  # Default time range
+        ts_range = (10, 25)  # Default time range
     var = str(var)
     config.target_dataset = dataset
     config.target_var = var
@@ -161,7 +177,10 @@ def run(dataset="half-cylinder", var="640", train=True, ts_range=None, lr=1e-4, 
 
         # Save the model state
         try:
-            torch.save(net.state_dict(), config.model_dir + f"{dataset}_{var}/{ts_range[0]}_{ts_range[1]}.pth")
+            torch.save(
+                net.state_dict(),
+                config.model_dir + f"{dataset}_{var}/{ts_range[0]}_{ts_range[1]}.pth",
+            )
         except Exception as e:
             print(e)
 
@@ -188,8 +207,8 @@ def run(dataset="half-cylinder", var="640", train=True, ts_range=None, lr=1e-4, 
             steps = batch_num * eval_batch + inside_num
 
             # Initialize training coordinates and values
-            train_coords = meta_batch['all']['x'].squeeze()
-            train_value = meta_batch['all']['y'].squeeze()
+            train_coords = meta_batch["all"]["x"].squeeze()
+            train_value = meta_batch["all"]["y"].squeeze()
 
             # Encoding phase
             tic = time.time()
@@ -225,7 +244,7 @@ def run(dataset="half-cylinder", var="640", train=True, ts_range=None, lr=1e-4, 
                 v_res += list(preds)  # Store predictions
 
             v_res = np.asarray(v_res, dtype=np.float32)
-            y_vals = meta_batch['total']['y'].squeeze().cpu()
+            y_vals = meta_batch["total"]["y"].squeeze().cpu()
             y_vals = np.asarray(y_vals, dtype=np.float32)
 
             # Calculate PSNR
@@ -239,7 +258,10 @@ def run(dataset="half-cylinder", var="640", train=True, ts_range=None, lr=1e-4, 
             try:
                 os.makedirs(config.model_dir, exist_ok=True)
                 os.makedirs(config.model_dir + f"{dataset}_{var}", exist_ok=True)
-                torch.save(learner.state_dict(), config.model_dir + f"{dataset}_{var}/eval_metainr_{ts_range[0] + steps}.pth")
+                torch.save(
+                    learner.state_dict(),
+                    config.model_dir + f"{dataset}_{var}/eval_metainr_{ts_range[0] + steps}.pth",
+                )
             except Exception as e:
                 print(e)
 
@@ -250,5 +272,6 @@ def run(dataset="half-cylinder", var="640", train=True, ts_range=None, lr=1e-4, 
     config.log({"total_encoding_time": total_encoding_time})  # Log encoding time
     config.log({"average_PSNR": np.mean(PSNRs)})  # Log average PSNR
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     fire.Fire(run)  # Run the main function with fire

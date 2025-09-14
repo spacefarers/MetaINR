@@ -1,15 +1,15 @@
-import torch
-from torch import nn
-import torch.nn.functional as F
-from torch.utils.data import DataLoader, Dataset
-import os
-import numpy as np
-import matplotlib.pyplot as plt
-from torch.nn import init
-import time
 import math
+import os
+import time
 
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+import torch.nn.functional as F
 from icecream import ic
+from torch import nn
+from torch.nn import init
+from torch.utils.data import DataLoader, Dataset
 
 
 class Sine(nn.Module):
@@ -18,7 +18,7 @@ class Sine(nn.Module):
 
     def forward(self, input):
         # See paper sec. 3.2, final paragraph, and supplement Sec. 1.5 for discussion of factor 30
-        return torch.sin(30*input)
+        return torch.sin(30 * input)
 
 
 class SineLayer(nn.Module):
@@ -31,8 +31,7 @@ class SineLayer(nn.Module):
     # If is_first=False, then the weights will be divided by omega_0 so as to keep the magnitude of
     # activations constant, but boost gradients to the weight matrix (see supplement Sec. 1.5)
 
-    def __init__(self, in_features, out_features, bias=True,
-                 is_first=False, omega_0=30):
+    def __init__(self, in_features, out_features, bias=True, is_first=False, omega_0=30):
         super().__init__()
         self.omega_0 = omega_0
         self.is_first = is_first
@@ -45,14 +44,15 @@ class SineLayer(nn.Module):
     def init_weights(self):
         with torch.no_grad():
             if self.is_first:
-                self.linear.weight.uniform_(-1/self.in_features,
-                                            1/self.in_features)
+                self.linear.weight.uniform_(-1 / self.in_features, 1 / self.in_features)
             else:
-                self.linear.weight.uniform_(-np.sqrt(6/self.in_features)/self.omega_0,
-                                            np.sqrt(6/self.in_features)/self.omega_0)
+                self.linear.weight.uniform_(
+                    -np.sqrt(6 / self.in_features) / self.omega_0,
+                    np.sqrt(6 / self.in_features) / self.omega_0,
+                )
 
     def forward(self, input):
-        return torch.sin(self.omega_0*self.linear(input))
+        return torch.sin(self.omega_0 * self.linear(input))
 
 
 class LinearLayer(nn.Module):
@@ -66,7 +66,7 @@ class LinearLayer(nn.Module):
 
     def init_weights(self):
         with torch.no_grad():
-            self.linear.weight.uniform_(-1/self.in_features, 1/self.in_features)
+            self.linear.weight.uniform_(-1 / self.in_features, 1 / self.in_features)
             # self.linear.weight.normal_(0,0.05)
 
     def forward(self, input):
@@ -84,7 +84,7 @@ class ReLULayer(nn.Module):
 
     def init_weights(self):
         with torch.no_grad():
-            self.linear.weight.uniform_(-1/self.in_features, 1/self.in_features)
+            self.linear.weight.uniform_(-1 / self.in_features, 1 / self.in_features)
             # self.linear.weight.normal_(0,0.05)
 
     def forward(self, input):
@@ -92,15 +92,17 @@ class ReLULayer(nn.Module):
 
 
 class ResBlock(nn.Module):
-    def __init__(self, in_features, out_features, nonlinearity='relu'):
+    def __init__(self, in_features, out_features, nonlinearity="relu"):
         super(ResBlock, self).__init__()
-        nls_and_inits = {'sine': Sine(),
-                         'relu': nn.ReLU(inplace=True),
-                         'sigmoid': nn.Sigmoid(),
-                         'tanh': nn.Tanh(),
-                         'selu': nn.SELU(inplace=True),
-                         'softplus': nn.Softplus(),
-                         'elu': nn.ELU(inplace=True)}
+        nls_and_inits = {
+            "sine": Sine(),
+            "relu": nn.ReLU(inplace=True),
+            "sigmoid": nn.Sigmoid(),
+            "tanh": nn.Tanh(),
+            "selu": nn.SELU(inplace=True),
+            "softplus": nn.Softplus(),
+            "elu": nn.ELU(inplace=True),
+        }
 
         self.nl = nls_and_inits[nonlinearity]
 
@@ -110,7 +112,7 @@ class ResBlock(nn.Module):
 
         self.net.append(SineLayer(out_features, out_features))
 
-        self.flag = (in_features != out_features)
+        self.flag = in_features != out_features
 
         if self.flag:
             self.transform = SineLayer(in_features, out_features)
@@ -121,7 +123,7 @@ class ResBlock(nn.Module):
         outputs = self.net(features)
         if self.flag:
             features = self.transform(features)
-        return 0.5*(outputs+features)
+        return 0.5 * (outputs + features)
 
 
 class CoordNet(nn.Module):
@@ -136,15 +138,15 @@ class CoordNet(nn.Module):
 
         self.net.append(ResBlock(in_features, init_features))
 
-        self.net.append(ResBlock(init_features, 2*init_features))
+        self.net.append(ResBlock(init_features, 2 * init_features))
 
-        self.net.append(ResBlock(2*init_features, 4*init_features))
+        self.net.append(ResBlock(2 * init_features, 4 * init_features))
 
         for i in range(self.num_res):
-            self.net.append(ResBlock(4*init_features, 4*init_features))
+            self.net.append(ResBlock(4 * init_features, 4 * init_features))
 
         # self.net.append(ResBlock(4*init_features, out_features))
-        self.net.append(LinearLayer(4*init_features, out_features))
+        self.net.append(LinearLayer(4 * init_features, out_features))
 
         self.net = nn.Sequential(*self.net)
 
@@ -163,13 +165,13 @@ class SIREN(nn.Module):
 
         self.net = []
 
-        self.net.append(SineLayer(in_features, 4*init_features))
+        self.net.append(SineLayer(in_features, 4 * init_features))
 
         for i in range(self.num_res):
-            self.net.append(SineLayer(4*init_features, 4*init_features))
+            self.net.append(SineLayer(4 * init_features, 4 * init_features))
 
         # self.net.append(ResBlock(4*init_features, out_features))
-        self.net.append(LinearLayer(4*init_features, out_features))
+        self.net.append(LinearLayer(4 * init_features, out_features))
 
         self.net = nn.Sequential(*self.net)
 

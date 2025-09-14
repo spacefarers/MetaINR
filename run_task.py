@@ -5,10 +5,12 @@ Useful for submitting tasks to a cluster or running multiple tasks in parallel.
 """
 
 import fire
-import config
-import main
-import INR_encoding
+
 import baseline
+import config
+import INR_encoding
+import main
+
 
 def run_a_task(task_number):
     config.enable_logging = True
@@ -28,5 +30,5 @@ def run_a_task(task_number):
         INR_encoding.run(dataset=dataset, var=var, ts_range=ts_range, train_iterations=train_iters)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     fire.Fire(run_a_task)

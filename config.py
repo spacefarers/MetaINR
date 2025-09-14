@@ -1,9 +1,10 @@
-import platform
-import torch
-import numpy as np
-import neptune
-from tqdm import tqdm
 import json
+import platform
+
+import neptune
+import numpy as np
+import torch
+from tqdm import tqdm
 
 # Each dataset lives in root_data_dir/{dataset_name}/
 # dataset.json holds {"name","dims","vars","total_samples"}
@@ -43,12 +44,12 @@ pretraining = False
 INR_training = False
 transferring = False
 baseline_experiment = False
-device = torch.device('cuda')
+device = torch.device("cuda")
 batch_size = 1
 
-root_data_dir = '/mnt/d/data/'
-model_dir = '/mnt/d/models/'
-results_dir = '/mnt/d/results/'
+root_data_dir = "/d/data/"
+model_dir = "/d/models/"
+results_dir = "/d/results/"
 
 interval = 2
 crop_times = 4
@@ -69,6 +70,7 @@ ensemble_iter = None
 logging_init = False
 enable_restorer = False
 
+
 def seed_everything(seed=42):
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -77,6 +79,7 @@ def seed_everything(seed=42):
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
 
+
 def compare_models(model_1, model_2):
     models_differ = 0
     for key_item_1, key_item_2 in zip(model_1.state_dict().items(), model_2.state_dict().items()):
@@ -84,12 +87,13 @@ def compare_models(model_1, model_2):
             pass
         else:
             models_differ += 1
-            if (key_item_1[0] == key_item_2[0]):
-                print('Mismtach found at', key_item_1[0])
+            if key_item_1[0] == key_item_2[0]:
+                print("Mismtach found at", key_item_1[0])
             else:
                 raise Exception
     if models_differ == 0:
-        print('Models match perfectly! :)')
+        print("Models match perfectly! :)")
+
 
 seed_everything(42)
 log_obj = None
@@ -97,15 +101,15 @@ log_obj = None
 
 def get_flag():
     if pretraining:
-        flag = 'pretrain'
+        flag = "pretrain"
     elif INR_training:
-        flag = 'INR'
+        flag = "INR"
     elif baseline_experiment:
-        flag = 'baseline'
+        flag = "baseline"
     elif transferring:
-        flag = 'transfer'
+        flag = "transfer"
     else:
-        flag = 'other'
+        flag = "other"
     return flag
 
 
@@ -145,14 +149,13 @@ def log_all(direct_log=True):
     return return_result
 
 
-
 json_data = {}
 
 
 def load_json_data(dataset):
     global json_data
-    data_dir = root_data_dir+dataset+'/'
-    dataset_json = data_dir+'dataset.json'
+    data_dir = root_data_dir + dataset + "/"
+    dataset_json = data_dir + "dataset.json"
     json_data[dataset] = json.load(open(dataset_json))
 
 
@@ -160,7 +163,7 @@ def get_dims_of_dataset(dataset):
     global json_data
     if dataset not in json_data:
         load_json_data(dataset)
-    dims = json_data[dataset]['dims']
+    dims = json_data[dataset]["dims"]
     return dims
 
 
@@ -168,8 +171,8 @@ def get_size_of_dataset(dataset):
     global json_data
     if dataset not in json_data:
         load_json_data(dataset)
-    size = json_data[dataset]['total_samples']
+    size = json_data[dataset]["total_samples"]
     return size
 
 
-test_timesteps = range(1, get_size_of_dataset(target_dataset)+1)
+test_timesteps = range(1, get_size_of_dataset(target_dataset) + 1)

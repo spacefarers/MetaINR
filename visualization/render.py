@@ -1,7 +1,8 @@
-from dataio import *
-import config
-from models import SIREN
 from tqdm import tqdm
+
+import config
+from dataio import *
+from models import SIREN
 
 rules = {
     ("vorts", "default"): [[10, 25]],
@@ -41,8 +42,14 @@ for (dataset, var), ts_ranges in rules.items():
                 for ind, t in enumerate(tqdm(range(ts_range[0], ts_range[1]))):
                     y_vals = meta_dataset[ind]["all"]["y"].squeeze().cpu().detach().numpy()
                     y_vals = np.asarray(y_vals, dtype=np.float32)
-                    os.makedirs(config.results_dir+f"{dataset}_{var}/{load_suffix}/", exist_ok=True)
-                    saveDat(y_vals, config.results_dir+f"{dataset}_{var}/{load_suffix}/preds_{load_suffix}_{t}.raw")
+                    os.makedirs(
+                        config.results_dir + f"{dataset}_{var}/{load_suffix}/",
+                        exist_ok=True,
+                    )
+                    saveDat(
+                        y_vals,
+                        config.results_dir + f"{dataset}_{var}/{load_suffix}/preds_{load_suffix}_{t}.raw",
+                    )
                 continue
 
             dims = config.get_dims_of_dataset(dataset)
@@ -52,7 +59,7 @@ for (dataset, var), ts_ranges in rules.items():
 
             net = SIREN(in_features=3, out_features=1, init_features=64, num_res=5)
             for t in tqdm(range(ts_range[0], ts_range[1])):
-                net.load_state_dict(torch.load(config.model_dir+f"{dataset}_{var}/eval_{load_suffix}_{t}.pth"))
+                net.load_state_dict(torch.load(config.model_dir + f"{dataset}_{var}/eval_{load_suffix}_{t}.pth"))
                 net = net.to(device)
                 net.eval()
                 # decoding
@@ -64,5 +71,11 @@ for (dataset, var), ts_ranges in rules.items():
                 v_res = np.asarray(v_res, dtype=np.float32)
                 # normalize to 0 to 1
                 # v_res = (v_res-v_res.min())/(v_res.max()-v_res.min())
-                os.makedirs(config.results_dir+f"{dataset}_{var}/{load_suffix}/", exist_ok=True)
-                saveDat(v_res, config.results_dir+f"{dataset}_{var}/{load_suffix}/preds_{load_suffix}_{t}.raw")
+                os.makedirs(
+                    config.results_dir + f"{dataset}_{var}/{load_suffix}/",
+                    exist_ok=True,
+                )
+                saveDat(
+                    v_res,
+                    config.results_dir + f"{dataset}_{var}/{load_suffix}/preds_{load_suffix}_{t}.raw",
+                )
